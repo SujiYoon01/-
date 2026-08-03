@@ -39,7 +39,7 @@
   .part-nav button{ font-family:inherit; font-size:13px; font-weight:700; color:var(--c1); background:#EAF1FF; border:1px solid var(--c3); border-radius:20px; padding:8px 18px; cursor:pointer; transition:background .15s,color .15s; }
   .part-nav button:hover{ background:#DCE9FF; }
   .part-nav button.active{ background:var(--c1); color:#fff; border-color:var(--c1); }
-  .part-banner{ background:var(--c4); border-left:5px solid var(--gold); border-radius:6px; padding:12px 16px; margin-bottom:14px; }
+  .part-banner{ background:var(--c4); border-left:5px solid var(--c2); border-radius:6px; padding:12px 16px; margin-bottom:14px; }
   .part-banner .t{ font-size:14.5px; font-weight:800; color:var(--dark); }
   .part-banner .s{ font-size:11.5px; color:var(--sub); margin-top:2px; }
 
@@ -70,6 +70,8 @@
   .track-mark{ position:absolute; top:-5px; bottom:-5px; width:0; border-left:2px dashed var(--gold); z-index:2; }
   .track-mark-legend{ display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--gold); margin-bottom:10px; }
   .track-mark-swatch{ width:10px; height:2px; background:var(--gold); display:inline-block; }
+  .stack-track{ flex:1; height:16px; border-radius:4px; overflow:hidden; display:flex; margin-right:10px; background:#F0F2F5; }
+  .stack-track > div{ height:100%; }
 
   .vbar-wrap{ display:flex; align-items:flex-end; justify-content:space-between; height:150px; margin-top:6px; padding:0 4px; }
   .vbar-col{ display:flex; flex-direction:column; align-items:center; flex:1; cursor:pointer; }
@@ -177,6 +179,9 @@
       <div class="card w-full"><div class="card-title"><span class="tab" style="background:#7C5FD1"></span><h2>부서별 레벨 분포</h2><span class="note">12개 부서 × 레벨 상세</span></div>
         <div id="crosstabContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
 
+      <div class="card w-full"><div class="card-title"><span class="tab" style="background:#7C5FD1"></span><h2>부서별 레벨 피라미드</h2><span class="note">레벨 구성비 비교 (수석=7 ~ 계약직)</span></div>
+        <div id="levelPyramidContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
+
       <div class="card w-half"><div class="card-title"><span class="tab" style="background:#7C5FD1"></span><h2>레벨별 인원현황</h2><span class="note" id="levelNote">직급코드 기준</span></div>
         <div id="levelContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
 
@@ -188,6 +193,9 @@
 
       <div class="card w-half"><div class="card-title"><span class="tab"></span><h2>부서별 평균 근속연수</h2><span class="note">그룹입사일 기준 · 임원 제외</span></div>
         <div id="teamTenureContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
+
+      <div class="card w-half"><div class="card-title"><span class="tab"></span><h2>근속연수별 인원현황</h2><span class="note">그룹입사일 기준 구간 · 임원 제외</span></div>
+        <div id="tenureBucketContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
     </div>
   </div>
 
@@ -208,6 +216,9 @@
 
       <div class="card w-full"><div class="card-title"><span class="tab" style="background:var(--pos)"></span><h2>사업부별 학력분포</h2><span class="note">박사/석사/학사이하</span></div>
         <div id="buEduContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
+
+      <div class="card w-full"><div class="card-title"><span class="tab" style="background:#7C5FD1"></span><h2>사업부별 레벨 피라미드</h2><span class="note">레벨 구성비 비교</span></div>
+        <div id="buLevelPyramidContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
     </div>
   </div>
 
@@ -335,6 +346,27 @@ function renderDonut(containerId,data,centerLabel){
 }
 function esc(s){ return String(s).replace(/'/g,"\\'"); }
 
+/* 레벨 피라미드: 수석(7)에 가까울수록 짙은 네이비, 계약직에 가까울수록 옅은 색 */
+const PYRAMID_LEVELS = ['임원','7','6','5','4','3','2','1','계약직'];
+function levelGradient(n){
+  const arr=[]; for(let i=0;i<n;i++){ arr.push(mix('#0B1526','#D6DEEA', n>1 ? i/(n-1) : 0)); } return arr;
+}
+function renderLevelPyramidCard(containerId, rows, order){
+  if(!rows.length){ document.getElementById(containerId).innerHTML = '<div class="empty-state">표시할 데이터가 없습니다</div>'; return; }
+  const colors = levelGradient(order.length);
+  const legend = `<div class="pie-legend" style="justify-content:flex-start;margin-bottom:10px;">` + order.map((lv,i)=>`<span class="pie-legend-item"><i style="background:${colors[i]}"></i>${lv}</span>`).join('') + `</div>`;
+  const body = rows.map(r=>{
+    const segs = order.map((lv,i)=>{ const v=r.counts[lv]||0; const pct=r.total? v/r.total*100:0; if(pct<=0) return ''; return `<div style="width:${pct}%;background:${colors[i]};" title="${lv}: ${v}명 (${Math.round(pct)}%)"></div>`; }).join('');
+    return `<div class="barrow"><div class="name">${r.label}</div><div class="stack-track">${segs}</div><div class="num">${r.total}명</div></div>`;
+  }).join('');
+  document.getElementById(containerId).innerHTML = legend + body;
+}
+function tenureYearsOf(row, base){
+  const digits=(row['그룹입사일']||'').replace(/[^0-9]/g,''); if(digits.length<8) return null;
+  const y=+digits.slice(0,4), m=+digits.slice(4,6)-1, d=+digits.slice(6,8); const joined=new Date(y,m,d);
+  if(isNaN(joined.getTime())) return null; return (base-joined)/(1000*60*60*24*365.25);
+}
+
 /* ===== 5. 당월 명부 집계/렌더 — PART 1 (우주사업부) ===== */
 function renderAllFromCurrent(){
   const spaceAll = state.curr.filter(r=>isSpace(r[ORG_FIELD]));
@@ -358,7 +390,38 @@ function renderAllFromCurrent(){
   renderJobCard(active);
   renderEduCard(active);
   renderTenureCard(active);
+  renderTenureBuckets(active);
   renderCrosstab(active);
+  renderLevelPyramid(active);
+}
+
+function renderLevelPyramid(active){
+  const rows = [];
+  GROUP_ORDER.forEach(g=>{
+    ORG_GROUPS[g].forEach(org=>{
+      const counts={}; let total=0;
+      active.forEach(r=>{
+        if(r[ORG_FIELD]!==org) return;
+        const {level}=classifyJobCode(r['직급코드']);
+        if(level==='미분류') return;
+        counts[level]=(counts[level]||0)+1; total++;
+      });
+      if(total>0) rows.push({label:org, counts, total});
+    });
+  });
+  renderLevelPyramidCard('levelPyramidContent', rows, PYRAMID_LEVELS);
+}
+
+function renderTenureBuckets(active){
+  const base = baseDate();
+  const eligible = active.filter(r=>!isExec(r));
+  const tenures = eligible.map(r=>tenureYearsOf(r, base)).filter(t=>t!==null);
+  const buckets = {'0~4년':0,'5~9년':0,'10~14년':0,'15~19년':0,'20~24년':0,'25년 이상':0};
+  tenures.forEach(t=>{
+    if(t<5) buckets['0~4년']++; else if(t<10) buckets['5~9년']++; else if(t<15) buckets['10~14년']++;
+    else if(t<20) buckets['15~19년']++; else if(t<25) buckets['20~24년']++; else buckets['25년 이상']++;
+  });
+  renderBarList('tenureBucketContent', Object.entries(buckets).map(([label,value])=>({label,value})), {unit:'명'});
 }
 
 function renderDeptCard(active){
@@ -440,13 +503,8 @@ function renderEduCard(active){
 
 function renderTenureCard(active){
   const base=baseDate();
-  function tenureYears(row){
-    const digits=(row['그룹입사일']||'').replace(/[^0-9]/g,''); if(digits.length<8) return null;
-    const y=+digits.slice(0,4), m=+digits.slice(4,6)-1, d=+digits.slice(6,8); const joined=new Date(y,m,d);
-    if(isNaN(joined.getTime())) return null; return (base-joined)/(1000*60*60*24*365.25);
-  }
   const eligible = active.filter(r=>!isExec(r));
-  const tenures = eligible.map(r=>({row:r,t:tenureYears(r)})).filter(x=>x.t!==null);
+  const tenures = eligible.map(r=>({row:r,t:tenureYearsOf(r, base)})).filter(x=>x.t!==null);
   const deptTenure={};
   tenures.forEach(({row,t})=>{ const dept=row[ORG_FIELD]; if(!deptTenure[dept]) deptTenure[dept]=[]; deptTenure[dept].push(t); });
   const deptData = Object.entries(deptTenure).map(([label,list])=>({label, value:Math.round(list.reduce((a,b)=>a+b,0)/list.length*100)/100})).sort((a,b)=>b.value-a.value);
@@ -473,14 +531,14 @@ function renderCrosstab(active){
 /* ===== 6. 당월 명부 집계/렌더 — PART 2 (전사/사업부 비교) ===== */
 function renderBUSection(){
   if(!state.curr || !state.curr.length || !(BU_FIELD in state.curr[0])){
-    ['buHeadcountContent','buAgeContent','buExecContent','buExecRatioContent','buEduContent'].forEach(id=>{
+    ['buHeadcountContent','buAgeContent','buExecContent','buExecRatioContent','buEduContent','buLevelPyramidContent'].forEach(id=>{
       document.getElementById(id).innerHTML = '<div class="empty-state">명부에 \'사업부\' 컬럼이 없습니다. A열 앞에 사업부 컬럼을 추가해 업로드해주세요.</div>';
     });
     return;
   }
   const base = baseDate();
   const active = state.curr.filter(r=>r['재직상태']==='재직');
-  const buGroups = {}; BU_LIST.forEach(b=>buGroups[b]={ count:0, exec:0, ageSum:0, ageCount:0, edu:{박사:0,석사:0,학사이하:0} });
+  const buGroups = {}; BU_LIST.forEach(b=>buGroups[b]={ count:0, exec:0, ageSum:0, ageCount:0, edu:{박사:0,석사:0,학사이하:0}, level:{} });
 
   active.forEach(r=>{
     const bu = (r[BU_FIELD]||'').trim();
@@ -492,6 +550,8 @@ function renderBUSection(){
     if(age!==null){ g.ageSum += age; g.ageCount++; }
     const e = eduSimple((r['최종학력']||'').trim());
     g.edu[e] = (g.edu[e]||0)+1;
+    const {level} = classifyJobCode(r['직급코드']);
+    if(level!=='미분류') g.level[level] = (g.level[level]||0)+1;
   });
 
   const colors = donutPalette(BU_LIST.length);
@@ -515,6 +575,9 @@ function renderBUSection(){
   const totalSum = degrees.reduce((a,d)=>a+totals[d],0);
   rows += `<tr class="total"><td class="lbl">전사 합계</td>${degrees.map(d=>`<td>${totals[d]}</td>`).join('')}<td>${totalSum}</td></tr>`;
   document.getElementById('buEduContent').innerHTML = `<table class="tbl">${rows}</table>`;
+
+  const pyramidRows = BU_LIST.map(b=>({label:b, counts:buGroups[b].level, total:buGroups[b].count})).filter(r=>r.total>0);
+  renderLevelPyramidCard('buLevelPyramidContent', pyramidRows, PYRAMID_LEVELS);
 }
 
 /* ===== 7. 전월/당월 비교 ===== */
