@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>우주사업부 인원현황</title>
+<style>
+  /* ===== 엑셀 보고서 톤앤매너: 흰 배경, 검정 글씨, 얇은 테두리, 점선 구분선 ===== */
+  :root{
+    --ink:#000000; --sub:#595959; --line:#000000; --dash:#B0B0B0;
+    --head-bg:#D9D9D9; --sub-bg:#EDEDED; --total-bg:#1F3864; --total-ink:#FFFFFF;
+    --bg:#FFFFFF; --err:#C00000;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; padding:24px 28px 60px; background:var(--bg); color:var(--ink);
+    font-family:'Malgun Gothic','맑은 고딕',Dotum,sans-serif; font-size:13px; line-height:1.5;
+    max-width:1100px; margin-left:auto; margin-right:auto;
+  }
+
+  /* 상단 타이틀 */
+  .titlebar{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:3px double var(--ink); padding-bottom:8px; margin-bottom:14px; }
+  .titlebar h1{ font-size:20px; margin:0; letter-spacing:-0.3px; }
+  .titlebar .meta{ font-size:12px; color:var(--sub); text-align:right; }
+  .titlebar .meta input[type=date]{ font-family:inherit; font-size:12px; border:1px solid #999; padding:2px 4px; }
+
+  /* 업로드 툴바 (보고서 본문은 아니고 도구 영역이라 옅게 처리) */
+  .toolbar{ background:#F7F7F7; border:1px solid #CCC; padding:8px 12px; margin-bottom:18px; font-size:12px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+  .toolbar .f{ display:flex; gap:6px; align-items:center; }
+  .toolbar input[type=file]{ font-size:12px; }
+  .toolbar .req{ font-weight:700; }
+  .toolbar .req.must{ color:var(--err); }
+  .toolbar button{ font-family:inherit; font-size:12px; padding:4px 10px; border:1px solid #999; background:#fff; cursor:pointer; }
+  .errbox{ display:none; border:1px solid var(--err); color:var(--err); background:#FDECEC; padding:8px 12px; font-size:12px; margin-bottom:14px; }
+
+  /* 섹션 제목 */
+  .sec{ margin-top:26px; }
+  .sec h2{ font-size:14px; margin:0 0 8px; }
+  .sec h2::before{ content:'■ '; }
+
+  /* 표 */
+  table.rpt{ border-collapse:collapse; width:100%; font-size:12.5px; }
+  table.rpt th{ background:var(--head-bg); border:1px solid var(--line); padding:6px 8px; font-weight:700; text-align:center; }
+  table.rpt td{ border-left:1px solid var(--line); border-right:1px solid var(--line); border-bottom:1px dashed var(--dash); padding:6px 8px; text-align:center; }
+  table.rpt tr:first-child td{ border-top:1px solid var(--line); }
+  table.rpt td.lbl{ text-align:left; }
+  table.rpt tr.subtotal td{ background:var(--sub-bg); font-weight:700; border-bottom:1px solid var(--line); }
+  table.rpt tr.total td{ background:var(--total-bg); color:var(--total-ink); font-weight:700; border-bottom:1px solid var(--line); }
+
+  /* 표+차트 좌우 배치 */
+  .split{ display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; }
+  .split .tbl-col{ flex:1 1 420px; }
+  .split .chart-col{ flex:1 1 260px; display:flex; flex-direction:column; align-items:center; }
+  .legend{ font-size:11.5px; margin-top:8px; }
+  .legend .row{ display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+  .legend i{ width:10px; height:10px; display:inline-block; }
+
+  .empty{ color:var(--sub); font-size:12px; padding:14px 0; }
+  .footnote{ font-size:11px; color:var(--sub); margin-top:30px; border-top:1px solid #CCC; padding-top:8px; }
+</style>
+</head>
+<body>
+
+  <div class="titlebar">
+    <h1>우주사업부 인원현황</h1>
+    <div class="meta">기준일 <input type="date" id="reportDate"></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="f"><span class="req must">[필수]</span> 당월 명부(csv) <input type="file" id="currCsv" accept=".csv" onchange="onRosterFile('curr', this.files[0])"> <span id="currStatus" style="color:#666;">미선택</span></div>
+    <div class="f"><span class="req">[선택]</span> 전월 명부(csv) <input type="file" id="prevCsv" accept=".csv" onchange="onRosterFile('prev', this.files[0])"> <span id="prevStatus" style="color:#666;">미선택</span></div>
+    <button onclick="exportSnapshot()">현재 화면 HTML로 저장</button>
+  </div>
+  <div class="errbox" id="errBox"></div>
+
+  <div class="sec">
+    <h2>전체 인원 내역</h2>
+    <div id="overallTable"><div class="empty">당월 명부를 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>이동 세부 내역</h2>
+    <div id="moveTable"><div class="empty">전월·당월 명부를 모두 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>부서별 인원 현황</h2>
+    <div id="deptSection"><div class="empty">당월 명부를 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>레벨/직급별 인원 현황</h2>
+    <div id="levelSection"><div class="empty">당월 명부를 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>직군별 인원 현황</h2>
+    <div id="jobSection"><div class="empty">당월 명부를 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>조직별 학력사항</h2>
+    <div id="eduSection"><div class="empty">당월 명부를 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="footnote">CSV는 브라우저 안에서만 처리되며 외부로 전송되지 않습니다. · 전사 8개 사업부 비교는 사업부 매핑표를 받으면 추가됩니다.</div>
+
+<script>
+/* =========================================================
+   0. 설정 — 우주사업부 조직/직급 분류 기준 (조직 개편 시 여기만 수정)
+   ========================================================= */
+const ORG_GROUPS = {
+  '직속조직': ['우주사업총괄','우주사업부','우주사업전략팀','우주사업단','솔루션사업팀','차세대위성체계팀','제주우주센터'],
+  '우주연구소': ['위성체계팀','위성본체팀','위성탑재체1팀','위성탑재체2팀','위성탑재체3팀','위성지상체팀','위성기계팀']
+};
+const GROUP_ORDER = ['직속조직','우주연구소'];
+const SPACE_ORGS = Object.values(ORG_GROUPS).flat();
+const ORG_FIELD = '조직명'; // 원소속부서가 아닌 조직명을 기준으로 소속 판단 (파견자 반영)
+function groupOf(org){ for(const [g,list] of Object.entries(ORG_GROUPS)) if(list.includes(org)) return g; return '미분류'; }
+function isSpace(org){ return SPACE_ORGS.includes((org||'').trim()); }
+
+const EXEC_CODES = ['P','VP','ED'];
+const LEVEL_ORDER = ['임원','7','6','5','4','3','2','1','계약직','미분류'];
+function classifyJobCode(raw){
+  const code = (raw||'').trim().toUpperCase();
+  if(EXEC_CODES.includes(code)) return { level:'임원', family:'임원' };
+  const m = code.match(/^([A-Z]+)(\d+)/);
+  if(m) return { level:m[2].charAt(0), family:m[1] };
+  return { level:'미분류', family:'미분류' };
+}
+function isExec(row){ return classifyJobCode(row['직급코드']).level === '임원'; }
+function eduSimple(edu){ if(edu==='박사') return '박사'; if(edu==='석사') return '석사'; return '학사이하'; }
+
+const REQUIRED_COLUMNS = ['사번','성명','재직상태','조직명','법정생년월일','최종학력','직급코드'];
+const OFFICE_PALETTE = ['#4472C4','#ED7D31','#A5A5A5','#FFC000','#5B9BD5','#70AD47','#264478','#9E480E','#636363','#997300','#255E91','#43682B'];
+
+/* =========================================================
+   1. CSV 파싱 (외부 라이브러리 없음 — 사내망 CDN 차단 대비)
+   ========================================================= */
+const state = { curr:null, prev:null };
+
+function parseCsvText(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.length>0);
+  const rows = lines.map(line=>{
+    const cells=[]; let cur='', q=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch==='"'){ q=!q; }
+      else if(ch===',' && !q){ cells.push(cur); cur=''; }
+      else cur+=ch;
+    }
+    cells.push(cur);
+    return cells.map(c=>c.trim());
+  });
+  const header = rows[0];
+  return rows.slice(1).map(r=>{ const o={}; header.forEach((h,i)=>o[h]=r[i]??''); return o; });
+}
+
+function showErr(msg){ const box=document.getElementById('errBox'); box.textContent=msg; box.style.display='block'; }
+function clearErr(){ const box=document.getElementById('errBox'); box.style.display='none'; box.textContent=''; }
+
+function onRosterFile(which, file){
+  if(!file) return;
+  const statusEl = document.getElementById(which==='prev'?'prevStatus':'currStatus');
+  if(!/\.csv$/i.test(file.name)){
+    showErr('CSV 파일(.csv)만 업로드할 수 있습니다. 엑셀에서 "다른 이름으로 저장 → CSV UTF-8"로 변환해주세요.');
+    statusEl.textContent='업로드 실패'; return;
+  }
+  const reader = new FileReader();
+  reader.onerror = () => { showErr('파일을 읽는 중 오류가 발생했습니다.'); statusEl.textContent='업로드 실패'; };
+  reader.onload = e => {
+    try{
+      const text = e.target.result;
+      if((text.match(/\uFFFD/g)||[]).length > 3){
+        showErr('인코딩을 읽지 못했습니다. 엑셀에서 "CSV UTF-8"로 다시 저장한 뒤 업로드해주세요.');
+        statusEl.textContent='업로드 실패'; return;
+      }
+      const rows = parseCsvText(text);
+      if(rows.length===0){ showErr('데이터가 없는 파일입니다.'); statusEl.textContent='업로드 실패'; return; }
+      const missing = REQUIRED_COLUMNS.filter(c=>!Object.keys(rows[0]).includes(c));
+      if(missing.length){ showErr('필수 컬럼이 없습니다: '+missing.join(', ')); statusEl.textContent='업로드 실패'; return; }
+      clearErr();
+      state[which] = rows;
+      statusEl.textContent = rows.length+'명 로드됨';
+      if(which==='curr') renderAll();
+      if(state.curr && state.prev) renderMoves();
+    }catch(err){ showErr('처리 중 오류: '+err.message); statusEl.textContent='업로드 실패'; }
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function baseDate(){ const v=document.getElementById('reportDate').value; return v ? new Date(v) : new Date(); }
+(function(){ document.getElementById('reportDate').value = new Date().toISOString().slice(0,10); })();
+
+/* =========================================================
+   2. 공용 렌더 헬퍼 — 표 / 파이차트
+   ========================================================= */
+function renderTable(containerId, headers, rows, opts={}){
+  let html = '<table class="rpt"><tr>' + headers.map(h=>`<th>${h}</th>`).join('') + '</tr>';
+  rows.forEach(r=>{
+    const cls = r._cls ? ` class="${r._cls}"` : '';
+    html += `<tr${cls}>` + r.cells.map((c,i)=>`<td class="${i===0?'lbl':''}">${c}</td>`).join('') + '</tr>';
+  });
+  html += '</table>';
+  document.getElementById(containerId).innerHTML = html;
+}
+
+function pieSVG(data, size=180){
+  const total = data.reduce((a,d)=>a+d.value,0);
+  const cx=size/2, cy=size/2, r=size/2-4;
+  const toRad = d => d*Math.PI/180;
+  const pt = (deg,radius) => [cx+radius*Math.cos(toRad(deg)), cy+radius*Math.sin(toRad(deg))];
+  let start=-90, paths='';
+  data.forEach(d=>{
+    const sweep = total ? d.value/total*360 : 0;
+    const end = start+sweep;
+    const [x1,y1]=pt(start,r), [x2,y2]=pt(end,r);
+    const large = sweep>180?1:0;
+    paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${d.color}" stroke="#fff" stroke-width="1"/>`;
+    start = end;
+  });
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}</svg>`;
+}
+
+function renderPieWithLegend(containerId, dataRaw){
+  const total = dataRaw.reduce((a,d)=>a+d.value,0);
+  const data = dataRaw.map((d,i)=>({...d, color: d.color || OFFICE_PALETTE[i % OFFICE_PALETTE.length]}));
+  const legend = data.map(d=>{
+    const pct = total ? Math.round(d.value/total*100) : 0;
+    return `<div class="row"><i style="background:${d.color}"></i>${d.label} ${d.value}명 (${pct}%)</div>`;
+  }).join('');
+  document.getElementById(containerId).innerHTML = pieSVG(data) + `<div class="legend">${legend}</div>`;
+}
+
+/* =========================================================
+   3. 당월 명부 기준 집계/렌더
+   ========================================================= */
+function renderAll(){
+  const spaceAll = state.curr.filter(r=>isSpace(r[ORG_FIELD]));
+  const active = spaceAll.filter(r=>r['재직상태']==='재직');
+  const leave = spaceAll.filter(r=>r['재직상태']==='휴직');
+
+  renderOverallTable(spaceAll, active, leave);
+  renderDeptSection(active);
+  renderLevelSection(active);
+  renderJobSection(active);
+  renderEduSection(active);
+}
+
+function renderOverallTable(spaceAll, active, leave){
+  const bySite = {};
+  spaceAll.forEach(r=>{ const s=r['사업장']||'미기재'; bySite[s]=(bySite[s]||0)+1; });
+  const siteHeaders = Object.keys(bySite);
+  const headers = ['총원(계)','재직','휴직', ...siteHeaders];
+  const cells = [String(spaceAll.length), String(active.length), String(leave.length), ...siteHeaders.map(s=>String(bySite[s]))];
+  renderTable('overallTable', headers, [{cells, _cls:'total'}]);
+}
+
+function renderDeptSection(active){
+  let html = '<div class="split"><div class="tbl-col">';
+  const groupData = {}; GROUP_ORDER.forEach(g=>groupData[g]={});
+  active.forEach(r=>{ const g=groupOf(r[ORG_FIELD]); if(!groupData[g]) groupData[g]={}; const org=r[ORG_FIELD]; groupData[g][org]=(groupData[g][org]||0)+1; });
+
+  let rows = [];
+  const pieData = [];
+  GROUP_ORDER.forEach(g=>{
+    const entries = Object.entries(groupData[g]||{});
+    let sub = 0;
+    entries.forEach(([org,cnt])=>{ rows.push({cells:[org, String(cnt)]}); sub+=cnt; });
+    rows.push({cells:[g+' 소계', String(sub)], _cls:'subtotal'});
+    pieData.push({label:g, value:sub});
+  });
+  const grandTotal = pieData.reduce((a,d)=>a+d.value,0);
+  rows.push({cells:['우주사업부 총계', String(grandTotal)], _cls:'total'});
+
+  document.getElementById('deptSection').innerHTML =
+    '<div class="split"><div class="tbl-col" id="deptTbl"></div><div class="chart-col" id="deptPie"></div></div>';
+  renderTable('deptTbl', ['부서','인원'], rows);
+  renderPieWithLegend('deptPie', pieData);
+}
+
+function renderLevelSection(active){
+  const counts = {}; LEVEL_ORDER.forEach(l=>counts[l]=0);
+  active.forEach(r=>{ const {level}=classifyJobCode(r['직급코드']); counts[level]=(counts[level]||0)+1; });
+  const cats = LEVEL_ORDER.filter(l=> l!=='미분류' || counts['미분류']>0);
+  const rows = cats.map(l=>({cells:[l, String(counts[l])]}));
+  rows.push({cells:['계', String(active.length)], _cls:'total'});
+  document.getElementById('levelSection').innerHTML =
+    '<div class="split"><div class="tbl-col" id="levelTbl"></div><div class="chart-col" id="levelPie"></div></div>';
+  renderTable('levelTbl', ['레벨','인원'], rows);
+  renderPieWithLegend('levelPie', cats.map(l=>({label:l, value:counts[l]})));
+}
+
+function renderJobSection(active){
+  const counts = {};
+  active.forEach(r=>{ const {family}=classifyJobCode(r['직급코드']); counts[family]=(counts[family]||0)+1; });
+  const labels = Object.keys(counts);
+  const rows = labels.map(l=>({cells:[l==='임원'?'임원':l+'직군', String(counts[l])]}));
+  rows.push({cells:['계', String(active.length)], _cls:'total'});
+  document.getElementById('jobSection').innerHTML =
+    '<div class="split"><div class="tbl-col" id="jobTbl"></div><div class="chart-col" id="jobPie"></div></div>';
+  renderTable('jobTbl', ['직군','인원'], rows);
+  renderPieWithLegend('jobPie', labels.map(l=>({label:l==='임원'?'임원':l+'직군', value:counts[l]})));
+}
+
+function renderEduSection(active){
+  const groups = {};
+  active.forEach(r=>{ const g=groupOf(r[ORG_FIELD]); const e=eduSimple((r['최종학력']||'').trim()); if(!groups[g]) groups[g]={}; groups[g][e]=(groups[g][e]||0)+1; });
+  const degrees = ['박사','석사','학사이하'];
+  const rows = [];
+  const totals = {박사:0,석사:0,학사이하:0};
+  GROUP_ORDER.forEach(g=>{
+    const gd = groups[g]||{};
+    const cells = [g, ...degrees.map(d=>{ const v=gd[d]||0; totals[d]+=v; return String(v); })];
+    rows.push({cells});
+  });
+  rows.push({cells:['계', ...degrees.map(d=>String(totals[d]))], _cls:'total'});
+  document.getElementById('eduSection').innerHTML =
+    '<div class="split"><div class="tbl-col" id="eduTbl"></div><div class="chart-col" id="eduPie"></div></div>';
+  renderTable('eduTbl', ['조직', ...degrees], rows);
+  renderPieWithLegend('eduPie', degrees.map(d=>({label:d, value:totals[d]})));
+}
+
+/* =========================================================
+   4. 전월/당월 비교 — 이동 세부 내역
+   ========================================================= */
+function renderMoves(){
+  const prevMap = new Map(state.prev.map(r=>[r['사번'],r]));
+  const currMap = new Map(state.curr.map(r=>[r['사번'],r]));
+  const ym = (()=>{ const d=baseDate(); return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,'0'); })();
+  const rows = [];
+
+  currMap.forEach((row,id)=>{
+    if(!isSpace(row[ORG_FIELD])) return;
+    const prev = prevMap.get(id);
+    if(!prev){
+      const hireYM = (row['입사일']||'').replace(/[^0-9]/g,'').slice(0,6);
+      const type = hireYM===ym ? '채용' : '전입';
+      rows.push({cells:[type, row['성명'], row['직급명']||'', '-', row[ORG_FIELD]]});
+      return;
+    }
+    if(!isSpace(prev[ORG_FIELD])){
+      rows.push({cells:['전입(타사업부)', row['성명'], row['직급명']||'', prev[ORG_FIELD], row[ORG_FIELD]]});
+      return;
+    }
+    if(prev['재직상태']==='재직' && row['재직상태']==='휴직') rows.push({cells:['휴직', row['성명'], row['직급명']||'', '재직', row['휴직구분명']||'휴직']});
+    if(prev['재직상태']==='휴직' && row['재직상태']==='재직') rows.push({cells:['복직', row['성명'], row['직급명']||'', '휴직', '재직']});
+    if(prev[ORG_FIELD] !== row[ORG_FIELD]) rows.push({cells:['전배', row['성명'], row['직급명']||'', prev[ORG_FIELD], row[ORG_FIELD]]});
+    if(prev['직급명'] !== row['직급명']) rows.push({cells:['직급변동', row['성명'], prev['직급명']||'', prev['직급명'], row['직급명']]});
+  });
+
+  prevMap.forEach((row,id)=>{
+    if(!isSpace(row[ORG_FIELD])) return;
+    const curr = currMap.get(id);
+    if(!curr){ rows.push({cells:['퇴직', row['성명'], row['직급명']||'', row[ORG_FIELD], '-']}); return; }
+    if(!isSpace(curr[ORG_FIELD])) rows.push({cells:['전출(타사업부)', row['성명'], row['직급명']||'', row[ORG_FIELD], curr[ORG_FIELD]]});
+  });
+
+  if(rows.length===0){ document.getElementById('moveTable').innerHTML = '<div class="empty">전월 대비 변동 사항이 없습니다</div>'; return; }
+  renderTable('moveTable', ['구분','성명','직급','변경 전','변경 후'], rows);
+}
+
+/* =========================================================
+   5. 현재 화면을 정적 HTML로 저장
+   ========================================================= */
+function exportSnapshot(){
+  if(!state.curr){ alert('먼저 당월 명부 CSV를 업로드해주세요.'); return; }
+  const clone = document.documentElement.cloneNode(true);
+  ['.toolbar','#errBox'].forEach(sel=>{ const el=clone.querySelector(sel); if(el) el.remove(); });
+  const dateVal = document.getElementById('reportDate').value || new Date().toISOString().slice(0,10);
+  const metaEl = clone.querySelector('.meta');
+  if(metaEl) metaEl.textContent = '기준일 ' + dateVal + ' (저장 시점 고정)';
+  const html = '<!DOCTYPE html>\n' + clone.outerHTML;
+  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `우주사업부_인원현황_${dateVal.replace(/-/g,'')}.html`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
