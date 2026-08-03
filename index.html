@@ -162,7 +162,7 @@
   </div>
 
   <div id="part1">
-    <div class="part-banner"><div class="t">PART 1 · 우주사업부 현황</div><div class="s">조직명 기준, 우주사업부 소속 인원만 집계</div></div>
+    <div class="part-banner"><div class="t">PART 1 · 우주사업부 현황</div><div class="s">말일자 기준 재직인원만 집계</div></div>
     <div class="grid">
       <div class="card w-half"><div class="card-title"><span class="tab"></span><h2>인력증감내역</h2><span class="note">전월/당월 명부 비교</span></div>
         <div id="flowContent" class="card-body"><div class="empty-state">전월·당월 명부 CSV를 모두 올리면 표시됩니다</div></div></div>
@@ -200,7 +200,7 @@
   </div>
 
   <div id="part2">
-    <div class="part-banner"><div class="t">PART 2 · 전사 / 사업부별 비교</div><div class="s">'사업부' 컬럼 기준, 전사 명부 전체 대상</div></div>
+    <div class="part-banner"><div class="t">PART 2 · 전사 / 사업부별 비교</div><div class="s">말일자 기준 재직인원만 집계</div></div>
     <div class="grid">
       <div class="card w-half"><div class="card-title"><span class="tab"></span><h2>사업부별 인원현황</h2><span class="note">전사 재직 인원 기준</span></div>
         <div id="buHeadcountContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
@@ -286,16 +286,29 @@ function showUploadError(which,msg){ const banner=document.getElementById('uploa
 function clearUploadError(which){ const banner=document.getElementById('uploadErrorBanner'); const label=which==='prev'?'[전월 명부]':'[당월 명부]'; if(banner.textContent.startsWith(label)){ banner.style.display='none'; banner.textContent=''; } }
 function resetFileStatus(which){ const s=document.getElementById(which==='prev'?'prevStatus':'currStatus'); s.textContent='대기중'; s.classList.remove('ok'); s.classList.add('wait'); state[which]=null; }
 
+function decodeFileBuffer(buffer){
+  let text = new TextDecoder('utf-8', {fatal:false}).decode(buffer);
+  if(text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // BOM 제거
+  const brokenUtf8 = (text.match(/\uFFFD/g)||[]).length;
+  if(brokenUtf8 > 3){
+    // Excel에서 "CSV UTF-8"이 아닌 일반 "CSV"로 저장하면 EUC-KR(CP949)로 저장됨 — 재시도
+    const alt = new TextDecoder('euc-kr', {fatal:false}).decode(buffer);
+    const brokenAlt = (alt.match(/\uFFFD/g)||[]).length;
+    if(brokenAlt < brokenUtf8) return { text: alt, broken: brokenAlt };
+  }
+  return { text, broken: brokenUtf8 };
+}
+
 function onRosterFile(which,file){
   if(!file) return;
   document.getElementById(which==='prev'?'prevFname':'currFname').textContent = file.name;
-  if(!/\.csv$/i.test(file.name)){ showUploadError(which,'CSV 파일(.csv)만 업로드할 수 있습니다. 엑셀에서 "다른 이름으로 저장 → CSV UTF-8"로 변환해주세요.'); resetFileStatus(which); return; }
+  if(!/\.csv$/i.test(file.name)){ showUploadError(which,'CSV 파일(.csv)만 업로드할 수 있습니다.'); resetFileStatus(which); return; }
   const reader = new FileReader();
   reader.onerror = () => { showUploadError(which,'파일을 읽는 중 오류가 발생했습니다.'); resetFileStatus(which); };
   reader.onload = e => {
     try{
-      const text = e.target.result;
-      if((text.match(/\uFFFD/g)||[]).length > 3){ showUploadError(which,'인코딩을 읽지 못했습니다. "CSV UTF-8"로 다시 저장해주세요.'); resetFileStatus(which); return; }
+      const { text, broken } = decodeFileBuffer(e.target.result);
+      if(broken > 3){ showUploadError(which,'인코딩을 읽지 못했습니다. 엑셀에서 "다른 이름으로 저장 → CSV UTF-8"로 다시 저장해주세요.'); resetFileStatus(which); return; }
       const rows = parseCsvText(text);
       if(rows.length===0){ showUploadError(which,'데이터가 없습니다.'); resetFileStatus(which); return; }
       const missing = REQUIRED_COLUMNS.filter(c=>!Object.keys(rows[0]).includes(c));
@@ -306,7 +319,7 @@ function onRosterFile(which,file){
       if(state.curr && state.prev) renderComparison();
     }catch(err){ showUploadError(which,'처리 중 오류: '+err.message); resetFileStatus(which); }
   };
-  reader.readAsText(file,'UTF-8');
+  reader.readAsArrayBuffer(file);
 }
 function baseDate(){ const v=document.getElementById('reportDate').value; return v?new Date(v):new Date(); }
 (function(){ document.getElementById('reportDate').value=new Date().toISOString().slice(0,10); })();
@@ -385,7 +398,7 @@ function renderAllFromCurrent(){
   document.getElementById('kpiExecRatioChip').className = 'chip neutral';
 
   renderDeptCard(active);
-  renderSiteCard(spaceAll);
+  renderSiteCard(active);
   renderLevelCard(active);
   renderJobCard(active);
   renderEduCard(active);
@@ -465,9 +478,9 @@ function toggleDeptTooltip(e,org){
 }
 document.addEventListener('click', e=>{ const tip=document.getElementById('deptTooltip'); if(tip && !tip.contains(e.target) && !e.target.closest('.dept-tile')){ tip.style.display='none'; tip.dataset.org=''; } });
 
-function renderSiteCard(spaceAll){
+function renderSiteCard(active){
   const counts={};
-  spaceAll.forEach(r=>{ const s=r['사업장']||'미기재'; counts[s]=(counts[s]||0)+1; });
+  active.forEach(r=>{ const s=r['사업장']||'미기재'; counts[s]=(counts[s]||0)+1; });
   const labels = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
   renderBarList('siteContent', labels.map(l=>({label:l, value:counts[l]})), {unit:'명'});
 }
