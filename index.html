@@ -5,13 +5,107 @@
 <title>우주사업부 인원월보 대시보드</title>
 <style>
   :root{
+    --c1:#1B2A4A; --c2:#3D5A80; --c3:#8FA6C7; --c4:#D6DEEA;
+    --dark:#0B1526; --bg:#F2F4F7; --card:#FFFFFF; --border:#E4E7EC;
+    --text:#101828; --sub:#667085; --mute:#98A2B3; --pos:#1F9E89; --neg:#E4572E; --gold:#D9A441;
+  }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ background:var(--bg); }
+  body{ font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif; color:var(--text); padding:28px 32px 60px; max-width:1440px; margin:0 auto; }
+  .header{ display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:18px; margin-bottom:14px; border-bottom:2px solid var(--dark); flex-wrap:wrap; gap:16px; }
+  .titlewrap{ display:flex; align-items:flex-start; }
+  .titlewrap .tab{ width:6px; height:36px; background:var(--c1); border-radius:1px; margin-right:12px; }
+  .titlewrap h1{ font-size:24px; font-weight:800; color:var(--dark); letter-spacing:-0.4px; }
+  .titlewrap .sub{ font-size:12.5px; color:var(--sub); margin-top:5px; }
+  .meta{ text-align:right; font-size:11.5px; color:var(--mute); display:flex; align-items:center; gap:8px; }
+  .meta input[type=date]{ font-family:inherit; font-size:12px; border:1px solid var(--border); border-radius:6px; padding:4px 8px; color:var(--dark); }
+
+  .data-bar{ background:var(--card); border:1px solid var(--border); border-radius:10px; padding:14px 18px; margin-bottom:12px; display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+  .data-bar .grp{ display:flex; align-items:center; gap:8px; }
+  .req{ font-size:10px; font-weight:800; padding:2px 6px; border-radius:6px; }
+  .req.must{ background:#FDEDE8; color:#C6431E; }
+  .req.opt{ background:#EAF1FF; color:#2F6FED; }
+  .data-bar label.upbtn{ font-size:12px; font-weight:700; color:#fff; background:var(--c1); padding:7px 14px; border-radius:8px; cursor:pointer; white-space:nowrap; }
+  .data-bar input[type=file]{ display:none; }
+  .data-bar .fname{ font-size:11.5px; color:var(--sub); max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .status{ font-size:11px; padding:3px 9px; border-radius:10px; font-weight:700; }
+  .status.wait{ background:#F0F2F5; color:var(--mute); }
+  .status.ok{ background:#E6F7F2; color:#16876F; }
+  .data-bar .divider{ width:1px; height:26px; background:var(--border); }
+  .savebtn{ font-size:12px; font-weight:700; color:var(--dark); background:#fff; border:1px solid var(--border); padding:7px 14px; border-radius:8px; cursor:pointer; }
+  .upload-err{ background:#FDEDE8; color:#C6431E; border:1px solid #F6C9BA; border-radius:8px; padding:10px 14px; margin-bottom:14px; font-size:12px; font-weight:600; display:none; }
+
+  .part-nav{ display:flex; gap:10px; margin-bottom:20px; }
+  .part-nav button{ font-family:inherit; font-size:12.5px; font-weight:700; color:var(--c1); background:#EAF1FF; border:1px solid var(--c3); border-radius:20px; padding:7px 16px; cursor:pointer; }
+  .part-nav button:hover{ background:#DCE9FF; }
+  .part-banner{ background:var(--c4); border-left:5px solid var(--gold); border-radius:6px; padding:12px 16px; margin:30px 0 14px; }
+  .part-banner .t{ font-size:14.5px; font-weight:800; color:var(--dark); }
+  .part-banner .s{ font-size:11.5px; color:var(--sub); margin-top:2px; }
+
+  .kpi-row{ display:flex; gap:14px; margin-bottom:18px; flex-wrap:wrap; }
+  .kpi{ flex:1; min-width:200px; background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 20px; }
+  .kpi .label{ font-size:11.5px; color:var(--sub); font-weight:600; }
+  .kpi .value{ font-size:26px; font-weight:800; margin-top:6px; }
+  .kpi .chip{ display:inline-block; font-size:11.5px; font-weight:700; margin-top:7px; padding:2px 8px; border-radius:11px; }
+  .chip.up{ background:#E6F7F2; color:#16876F; }
+  .chip.neutral{ background:#F0F2F5; color:var(--mute); }
+
+  .grid{ display:flex; flex-wrap:wrap; gap:14px; }
+  .card{ background:var(--card); border:1px solid var(--border); border-radius:10px; padding:18px 20px 20px; box-shadow:0 1px 2px rgba(16,24,40,.04); display:flex; flex-direction:column; }
+  .w-half{ width:calc(50% - 7px); }
+  .w-full{ width:100%; }
+  .card-body{ flex:1; display:flex; flex-direction:column; justify-content:center; }
+  .card-title{ display:flex; align-items:center; margin-bottom:14px; }
+  .card-title .tab{ width:4px; height:15px; border-radius:1px; margin-right:8px; background:var(--c1); }
+  .card-title h2{ font-size:14.5px; font-weight:700; color:var(--dark); }
+  .card-title .note{ margin-left:auto; font-size:10.5px; color:var(--mute); }
+  .empty-state{ font-size:12.5px; color:var(--mute); text-align:center; padding:30px 10px; background:#F7F9FC; border-radius:8px; }
+
+  .barrow{ display:flex; align-items:center; margin-bottom:10px; }
+  .barrow .name{ width:120px; font-size:12px; color:#475467; flex-shrink:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .barrow .track{ flex:1; background:#F0F2F5; border-radius:4px; height:16px; position:relative; margin-right:10px; }
+  .barrow .fill{ position:absolute; left:0; top:0; height:100%; border-radius:4px; background:var(--c1); }
+  .barrow .num{ width:60px; font-size:12px; font-weight:700; color:var(--dark); text-align:right; flex-shrink:0; }
+  .track-mark{ position:absolute; top:-5px; bottom:-5px; width:0; border-left:2px dashed var(--gold); z-index:2; }
+  .track-mark-legend{ display:flex; align-items:center; gap:6px; font-size:11px; font-weight:700; color:var(--gold); margin-bottom:10px; }
+  .track-mark-swatch{ width:10px; height:2px; background:var(--gold); display:inline-block; }
+
+  .vbar-wrap{ display:flex; align-items:flex-end; justify-content:space-between; height:150px; margin-top:6px; padding:0 4px; }
+  .vbar-col{ display:flex; flex-direction:column; align-items:center; flex:1; cursor:pointer; }
+  .vbar-track{ width:32px; height:110px; display:flex; align-items:flex-end; }
+  .vbar-fill{ width:100%; border-radius:4px 4px 0 0; background:var(--c1); min-height:2px; }
+  .vbar-fill.neg{ background:var(--neg); }
+  .vbar-value{ font-size:11.5px; font-weight:700; color:var(--dark); margin-top:6px; }
+  .vbar-label{ font-size:11px; color:var(--sub); margin-top:2px; }
+
+  .dept-group-head{ display:flex; justify-content:space-between; font-size:11.5px; font-weight:800; color:var(--dark); margin:10px 0 6px; padding-bottom:4px; border-bottom:1px solid var(--border); }
+  .dept-group-head:first-child{ margin-top:0; }
+  .dept-group-head b{ color:var(--mute); font-weight:700; font-size:11px; }
+  .dept-tile-grid{ display:grid; grid-template-columns:
+
+
+
+-----Original Message-----
+보낸사람: "윤수지"<yhmk5021@naver.com>
+받는사람: ""<suji.yoon@hanwha.com>
+참조:
+날짜: 2026. 8. 3 오후 3:11:50
+제목: RE: github 대시보드용 코드
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>우주사업부 인원월보 대시보드</title>
+<style>
+  :root{
     --c1:#2F6FED; --c2:#6FA8FF; --c3:#BFD6FF; --c4:#DCE4F0;
     --dark:#16233F; --bg:#F2F4F7; --card:#FFFFFF; --border:#E4E7EC;
     --text:#101828; --sub:#667085; --mute:#98A2B3; --pos:#1F9E89; --neg:#E4572E;
   }
   *{ box-sizing:border-box; margin:0; padding:0; }
   html,body{ background:var(--bg); }
-  body{ font-family:-apple-system,BlinkMacSystemFont,'Apple SD Gothic Neo','Malgun Gothic',sans-serif; color:var(--text); padding:28px 32px 60px; max-width:1440px; margin:0 auto; }
+  body{ font-family:-apple-system,BlinkMacSystemFont,\'Apple SD Gothic Neo\',\'Malgun Gothic\',sans-serif; color:var(--text); padding:28px 32px 60px; max-width:1440px; margin:0 auto; }
   .header{ display:flex; justify-content:space-between; align-items:flex-start; padding-bottom:18px; margin-bottom:16px; border-bottom:2px solid var(--dark); flex-wrap:wrap; gap:16px; }
   .titlewrap{ display:flex; align-items:flex-start; }
   .titlewrap .tab{ width:6px; height:36px; background:var(--c1); border-radius:1px; margin-right:12px; }
@@ -136,11 +230,11 @@
 
   <div class="data-bar">
     <div class="grp"><span class="req must">필수</span><label class="upbtn" for="currCsv">당월 명부 CSV 업로드</label>
-      <input type="file" id="currCsv" accept=".csv" onchange="onRosterFile('curr', this.files[0])">
+      <input type="file" id="currCsv" accept=".csv" onchange="onRosterFile(\'curr\', this.files[0])">
       <span class="fname" id="currFname">미선택</span><span class="status wait" id="currStatus">대기중</span></div>
     <div class="divider"></div>
     <div class="grp"><span class="req opt">선택</span><label class="upbtn" for="prevCsv" style="background:var(--pos)">전월 명부 CSV 업로드</label>
-      <input type="file" id="prevCsv" accept=".csv" onchange="onRosterFile('prev', this.files[0])">
+      <input type="file" id="prevCsv" accept=".csv" onchange="onRosterFile(\'prev\', this.files[0])">
       <span class="fname" id="prevFname">미선택</span><span class="status wait" id="prevStatus">대기중</span></div>
     <div class="divider"></div>
     <div class="grp"><button type="button" class="savebtn" onclick="exportSnapshot()">현재 화면 HTML로 저장</button></div>
@@ -149,9 +243,9 @@
 
   <div class="theme-panel">
     <span class="label">색상 테마</span>
-    <div class="swatch" style="background:#2F6FED" onclick="setTheme('#2F6FED','#6FA8FF','#BFD6FF','#DCE4F0','#16233F')" title="네이비 블루"></div>
-    <div class="swatch" style="background:#E8833A" onclick="setTheme('#E8833A','#F0AA73','#F6CFAB','#FBE8D3','#3A2413')" title="앰버"></div>
-    <div class="swatch" style="background:#1F9E89" onclick="setTheme('#1F9E89','#5BC2AE','#A7E0D4','#DFF3EE','#123B33')" title="포레스트 틸"></div>
+    <div class="swatch" style="background:#2F6FED" onclick="setTheme(\'#2F6FED\',\'#6FA8FF\',\'#BFD6FF\',\'#DCE4F0\',\'#16233F\')" title="네이비 블루"></div>
+    <div class="swatch" style="background:#E8833A" onclick="setTheme(\'#E8833A\',\'#F0AA73\',\'#F6CFAB\',\'#FBE8D3\',\'#3A2413\')" title="앰버"></div>
+    <div class="swatch" style="background:#1F9E89" onclick="setTheme(\'#1F9E89\',\'#5BC2AE\',\'#A7E0D4\',\'#DFF3EE\',\'#123B33\')" title="포레스트 틸"></div>
     <div class="divider"></div>
     <div class="colorpick"><span>직접 지정</span><input type="color" id="customColor" value="#2F6FED" oninput="setCustom(this.value)"></div>
   </div>
@@ -197,100 +291,100 @@
 <script>
 /* ===== 0. 설정: 조직/직급 분류 기준 ===== */
 const ORG_GROUPS = {
-  '직속조직': ['우주사업총괄','우주사업부','우주사업전략팀','우주사업단','솔루션사업팀','차세대위성체계팀','제주우주센터'],
-  '우주연구소': ['위성체계팀','위성본체팀','위성탑재체1팀','위성탑재체2팀','위성탑재체3팀','위성지상체팀','위성기계팀']
+  \'직속조직\': [\'우주사업총괄\',\'우주사업부\',\'우주사업전략팀\',\'우주사업단\',\'솔루션사업팀\',\'차세대위성체계팀\',\'제주우주센터\'],
+  \'우주연구소\': [\'위성체계팀\',\'위성본체팀\',\'위성탑재체1팀\',\'위성탑재체2팀\',\'위성탑재체3팀\',\'위성지상체팀\',\'위성기계팀\']
 };
-const GROUP_ORDER = ['직속조직','우주연구소'];
+const GROUP_ORDER = [\'직속조직\',\'우주연구소\'];
 const SPACE_ORGS = Object.values(ORG_GROUPS).flat();
-const ORG_FIELD = '조직명';
-function groupOf(org){ for(const [g,list] of Object.entries(ORG_GROUPS)) if(list.includes(org)) return g; return '미분류'; }
-function isSpace(org){ return SPACE_ORGS.includes((org||'').trim()); }
+const ORG_FIELD = \'조직명\';
+function groupOf(org){ for(const [g,list] of Object.entries(ORG_GROUPS)) if(list.includes(org)) return g; return \'미분류\'; }
+function isSpace(org){ return SPACE_ORGS.includes((org||\'\').trim()); }
 
-const EXEC_CODES = ['P','VP','ED'];
-const LEVEL_ORDER = ['임원','7','6','5','4','3','2','1','계약직','미분류'];
+const EXEC_CODES = [\'P\',\'VP\',\'ED\'];
+const LEVEL_ORDER = [\'임원\',\'7\',\'6\',\'5\',\'4\',\'3\',\'2\',\'1\',\'계약직\',\'미분류\'];
 function classifyJobCode(raw){
-  const code=(raw||'').trim().toUpperCase();
-  if(EXEC_CODES.includes(code)) return {level:'임원', family:'임원'};
+  const code=(raw||\'\').trim().toUpperCase();
+  if(EXEC_CODES.includes(code)) return {level:\'임원\', family:\'임원\'};
   const m = code.match(/^([A-Z]+)(\d+)/);
   if(m) return {level:m[2].charAt(0), family:m[1]};
-  return {level:'미분류', family:'미분류'};
+  return {level:\'미분류\', family:\'미분류\'};
 }
-function isExec(row){ return classifyJobCode(row['직급코드']).level==='임원'; }
-function eduSimple(edu){ if(edu==='박사') return '박사'; if(edu==='석사') return '석사'; return '학사이하'; }
-const REQUIRED_COLUMNS = ['사번','성명','재직상태','조직명','법정생년월일','최종학력','직급코드','사업장'];
+function isExec(row){ return classifyJobCode(row[\'직급코드\']).level===\'임원\'; }
+function eduSimple(edu){ if(edu===\'박사\') return \'박사\'; if(edu===\'석사\') return \'석사\'; return \'학사이하\'; }
+const REQUIRED_COLUMNS = [\'사번\',\'성명\',\'재직상태\',\'조직명\',\'법정생년월일\',\'최종학력\',\'직급코드\',\'사업장\'];
 
 /* ===== 1. 색상 테마 ===== */
-function hexToRgb(hex){ hex=hex.replace('#',''); return [parseInt(hex.substring(0,2),16),parseInt(hex.substring(2,4),16),parseInt(hex.substring(4,6),16)]; }
-function rgbToHex(r,g,b){ return '#'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join(''); }
+function hexToRgb(hex){ hex=hex.replace(\'#\',\'\'); return [parseInt(hex.substring(0,2),16),parseInt(hex.substring(2,4),16),parseInt(hex.substring(4,6),16)]; }
+function rgbToHex(r,g,b){ return \'#\'+[r,g,b].map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,\'0\')).join(\'\'); }
 function mix(hex,target,amount){ const [r,g,b]=hexToRgb(hex); const [tr,tg,tb]=hexToRgb(target); return rgbToHex(r+(tr-r)*amount,g+(tg-g)*amount,b+(tb-b)*amount); }
 function setTheme(c1,c2,c3,c4,dark){
   const root=document.documentElement.style;
-  root.setProperty('--c1',c1); root.setProperty('--c2',c2); root.setProperty('--c3',c3); root.setProperty('--c4',c4); root.setProperty('--dark',dark);
-  document.getElementById('customColor').value=c1;
+  root.setProperty(\'--c1\',c1); root.setProperty(\'--c2\',c2); root.setProperty(\'--c3\',c3); root.setProperty(\'--c4\',c4); root.setProperty(\'--dark\',dark);
+  document.getElementById(\'customColor\').value=c1;
   if(state.curr) renderAllFromCurrent();
 }
-function setCustom(hex){ setTheme(hex, mix(hex,'#FFFFFF',0.35), mix(hex,'#FFFFFF',0.62), mix(hex,'#FFFFFF',0.85), mix(hex,'#000000',0.55)); }
-function themeColors(){ const s=getComputedStyle(document.documentElement); return [s.getPropertyValue('--c1').trim(),s.getPropertyValue('--c2').trim(),s.getPropertyValue('--c3').trim(),s.getPropertyValue('--c4').trim()]; }
-function donutPalette(n){ const [c1,c2,c3,c4]=themeColors(); const base=[c1,c2,c3,c4]; const colors=[]; for(let i=0;i<n;i++) colors.push(i<4?base[i]:mix(c1,'#FFFFFF',0.2+0.15*(i-4))); return colors; }
+function setCustom(hex){ setTheme(hex, mix(hex,\'#FFFFFF\',0.35), mix(hex,\'#FFFFFF\',0.62), mix(hex,\'#FFFFFF\',0.85), mix(hex,\'#000000\',0.55)); }
+function themeColors(){ const s=getComputedStyle(document.documentElement); return [s.getPropertyValue(\'--c1\').trim(),s.getPropertyValue(\'--c2\').trim(),s.getPropertyValue(\'--c3\').trim(),s.getPropertyValue(\'--c4\').trim()]; }
+function donutPalette(n){ const [c1,c2,c3,c4]=themeColors(); const base=[c1,c2,c3,c4]; const colors=[]; for(let i=0;i<n;i++) colors.push(i<4?base[i]:mix(c1,\'#FFFFFF\',0.2+0.15*(i-4))); return colors; }
 
 /* ===== 2. CSV 파싱 & 업로드 (외부 라이브러리 없음) ===== */
 const state = { curr:null, prev:null };
 function parseCsvText(text){
   const lines = text.split(/\r?\n/).filter(l=>l.length>0);
   const rows = lines.map(line=>{
-    const cells=[]; let cur='', q=false;
+    const cells=[]; let cur=\'\', q=false;
     for(let i=0;i<line.length;i++){ const ch=line[i];
-      if(ch==='"'){ q=!q; } else if(ch===',' && !q){ cells.push(cur); cur=''; } else cur+=ch; }
+      if(ch===\'"\'){ q=!q; } else if(ch===\',\' && !q){ cells.push(cur); cur=\'\'; } else cur+=ch; }
     cells.push(cur); return cells.map(c=>c.trim());
   });
   const header = rows[0];
-  return rows.slice(1).map(r=>{ const o={}; header.forEach((h,i)=>o[h]=r[i]??''); return o; });
+  return rows.slice(1).map(r=>{ const o={}; header.forEach((h,i)=>o[h]=r[i]??\'\'); return o; });
 }
-function showUploadError(which,msg){ const banner=document.getElementById('uploadErrorBanner'); banner.textContent=(which==='prev'?'[전월 명부] ':'[당월 명부] ')+msg; banner.style.display='block'; }
-function clearUploadError(which){ const banner=document.getElementById('uploadErrorBanner'); const label=which==='prev'?'[전월 명부]':'[당월 명부]'; if(banner.textContent.startsWith(label)){ banner.style.display='none'; banner.textContent=''; } }
-function resetFileStatus(which){ const s=document.getElementById(which==='prev'?'prevStatus':'currStatus'); s.textContent='대기중'; s.classList.remove('ok'); s.classList.add('wait'); state[which]=null; }
+function showUploadError(which,msg){ const banner=document.getElementById(\'uploadErrorBanner\'); banner.textContent=(which===\'prev\'?\'[전월 명부] \':\'[당월 명부] \')+msg; banner.style.display=\'block\'; }
+function clearUploadError(which){ const banner=document.getElementById(\'uploadErrorBanner\'); const label=which===\'prev\'?\'[전월 명부]\':\'[당월 명부]\'; if(banner.textContent.startsWith(label)){ banner.style.display=\'none\'; banner.textContent=\'\'; } }
+function resetFileStatus(which){ const s=document.getElementById(which===\'prev\'?\'prevStatus\':\'currStatus\'); s.textContent=\'대기중\'; s.classList.remove(\'ok\'); s.classList.add(\'wait\'); state[which]=null; }
 
 function onRosterFile(which,file){
   if(!file) return;
-  document.getElementById(which==='prev'?'prevFname':'currFname').textContent = file.name;
-  if(!/\.csv$/i.test(file.name)){ showUploadError(which,'CSV 파일(.csv)만 업로드할 수 있습니다. 엑셀에서 "다른 이름으로 저장 → CSV UTF-8"로 변환해주세요.'); resetFileStatus(which); return; }
+  document.getElementById(which===\'prev\'?\'prevFname\':\'currFname\').textContent = file.name;
+  if(!/\.csv$/i.test(file.name)){ showUploadError(which,\'CSV 파일(.csv)만 업로드할 수 있습니다. 엑셀에서 "다른 이름으로 저장 → CSV UTF-8"로 변환해주세요.\'); resetFileStatus(which); return; }
   const reader = new FileReader();
-  reader.onerror = () => { showUploadError(which,'파일을 읽는 중 오류가 발생했습니다.'); resetFileStatus(which); };
+  reader.onerror = () => { showUploadError(which,\'파일을 읽는 중 오류가 발생했습니다.\'); resetFileStatus(which); };
   reader.onload = e => {
     try{
       const text = e.target.result;
-      if((text.match(/\uFFFD/g)||[]).length > 3){ showUploadError(which,'인코딩을 읽지 못했습니다. "CSV UTF-8"로 다시 저장해주세요.'); resetFileStatus(which); return; }
+      if((text.match(/\uFFFD/g)||[]).length > 3){ showUploadError(which,\'인코딩을 읽지 못했습니다. "CSV UTF-8"로 다시 저장해주세요.\'); resetFileStatus(which); return; }
       const rows = parseCsvText(text);
-      if(rows.length===0){ showUploadError(which,'데이터가 없습니다.'); resetFileStatus(which); return; }
+      if(rows.length===0){ showUploadError(which,\'데이터가 없습니다.\'); resetFileStatus(which); return; }
       const missing = REQUIRED_COLUMNS.filter(c=>!Object.keys(rows[0]).includes(c));
-      if(missing.length){ showUploadError(which,'필수 컬럼이 없습니다: '+missing.join(', ')); resetFileStatus(which); return; }
+      if(missing.length){ showUploadError(which,\'필수 컬럼이 없습니다: \'+missing.join(\', \')); resetFileStatus(which); return; }
       clearUploadError(which); state[which]=rows;
-      const s=document.getElementById(which==='prev'?'prevStatus':'currStatus'); s.textContent=rows.length+'명 로드됨'; s.classList.remove('wait'); s.classList.add('ok');
-      if(which==='curr') renderAllFromCurrent();
+      const s=document.getElementById(which===\'prev\'?\'prevStatus\':\'currStatus\'); s.textContent=rows.length+\'명 로드됨\'; s.classList.remove(\'wait\'); s.classList.add(\'ok\');
+      if(which===\'curr\') renderAllFromCurrent();
       if(state.curr && state.prev) renderComparison();
-    }catch(err){ showUploadError(which,'처리 중 오류: '+err.message); resetFileStatus(which); }
+    }catch(err){ showUploadError(which,\'처리 중 오류: \'+err.message); resetFileStatus(which); }
   };
-  reader.readAsText(file,'UTF-8');
+  reader.readAsText(file,\'UTF-8\');
 }
-function baseDate(){ const v=document.getElementById('reportDate').value; return v?new Date(v):new Date(); }
-(function(){ document.getElementById('reportDate').value=new Date().toISOString().slice(0,10); })();
+function baseDate(){ const v=document.getElementById(\'reportDate\').value; return v?new Date(v):new Date(); }
+(function(){ document.getElementById(\'reportDate\').value=new Date().toISOString().slice(0,10); })();
 
 /* ===== 3. 공용 렌더 헬퍼 ===== */
 function renderBarList(containerId,data,opts={}){
   const max = opts.max || Math.max(1, ...data.map(d=>Math.abs(d.value)));
   const hasMark = opts.markValue != null;
   const markPct = hasMark ? Math.min(100,Math.max(0,(opts.markValue/max)*100)) : 0;
-  const markTick = hasMark ? `<div class="track-mark" style="left:${markPct}%"></div>` : '';
-  const rows = data.map(d=>{ const pct=Math.max(2,Math.round(Math.abs(d.value)/max*100)); const color=d.color||'var(--c1)';
-    return `<div class="barrow"><div class="name">${d.label}</div><div class="track">${markTick}<div class="fill" style="width:${pct}%; background:${color}"></div></div><div class="num">${d.value}${opts.unit||''}</div></div>`; }).join('');
-  const markLegend = hasMark ? `<div class="track-mark-legend"><span class="track-mark-swatch"></span>${opts.markLabel||''}</div>` : '';
+  const markTick = hasMark ? `<div class="track-mark" style="left:${markPct}%"></div>` : \'\';
+  const rows = data.map(d=>{ const pct=Math.max(2,Math.round(Math.abs(d.value)/max*100)); const color=d.color||\'var(--c1)\';
+    return `<div class="barrow"><div class="name">${d.label}</div><div class="track">${markTick}<div class="fill" style="width:${pct}%; background:${color}"></div></div><div class="num">${d.value}${opts.unit||\'\'}</div></div>`; }).join(\'\');
+  const markLegend = hasMark ? `<div class="track-mark-legend"><span class="track-mark-swatch"></span>${opts.markLabel||\'\'}</div>` : \'\';
   document.getElementById(containerId).innerHTML = markLegend + rows;
 }
 function renderDonut(containerId,data,centerLabel){
   const total = data.reduce((a,d)=>a+d.value,0);
   const cx=130, cy=130, r=76;
   const toRad=d=>d*Math.PI/180, pt=(deg,radius)=>[cx+radius*Math.cos(toRad(deg)),cy+radius*Math.sin(toRad(deg))];
-  let start=-90, paths='', labels='';
+  let start=-90, paths=\'\', labels=\'\';
   data.forEach(d=>{
     const sweep = total?(d.value/total)*360:0; const end=start+sweep; const mid=start+sweep/2;
     const [x1,y1]=pt(start,r), [x2,y2]=pt(end,r); const large=sweep>180?1:0;
@@ -298,30 +392,30 @@ function renderDonut(containerId,data,centerLabel){
     const pct = total?Math.round(d.value/total*100):0;
     if(d.value>0 && pct>=8){
       const isRight = Math.cos(toRad(mid))>=0; const [lx1,ly1]=pt(mid,r), [lx2,ly2]=pt(mid,r+14);
-      const tx = lx2+(isRight?5:-5), anchor=isRight?'start':'end';
+      const tx = lx2+(isRight?5:-5), anchor=isRight?\'start\':\'end\';
       labels += `<line x1="${lx1}" y1="${ly1}" x2="${lx2}" y2="${ly2}" stroke="#98A2B3" stroke-width="1"/>
         <text x="${tx}" y="${ly2}" text-anchor="${anchor}" font-size="10.5" fill="#344054">
           <tspan x="${tx}" dy="-2">${d.label}</tspan><tspan x="${tx}" dy="13" font-weight="700">${d.value}명, ${pct}%</tspan></text>`;
     }
     start = end;
   });
-  const legend = data.map(d=>{ const pct=total?Math.round(d.value/total*100):0; return `<span class="pie-legend-item"><i style="background:${d.color}"></i>${d.label} ${d.value}명(${pct}%)</span>`; }).join('');
+  const legend = data.map(d=>{ const pct=total?Math.round(d.value/total*100):0; return `<span class="pie-legend-item"><i style="background:${d.color}"></i>${d.label} ${d.value}명(${pct}%)</span>`; }).join(\'\');
   document.getElementById(containerId).innerHTML = `<div class="pie-title">${centerLabel}</div><svg width="100%" height="260" viewBox="0 0 260 260" style="overflow:visible;">${paths}${labels}</svg><div class="pie-legend">${legend}</div>`;
 }
-function esc(s){ return String(s).replace(/'/g,"\\'"); }
+function esc(s){ return String(s).replace(/\'/g,"\\\'"); }
 
 /* ===== 4. 당월 명부 집계/렌더 ===== */
 function renderAllFromCurrent(){
   const spaceAll = state.curr.filter(r=>isSpace(r[ORG_FIELD]));
-  const active = spaceAll.filter(r=>r['재직상태']==='재직');
-  const leave = spaceAll.filter(r=>r['재직상태']==='휴직');
+  const active = spaceAll.filter(r=>r[\'재직상태\']===\'재직\');
+  const leave = spaceAll.filter(r=>r[\'재직상태\']===\'휴직\');
 
-  document.getElementById('kpiTotal').textContent = active.length+'명';
-  document.getElementById('kpiTotalChip').textContent = '재직 인원 기준';
-  document.getElementById('kpiTotalChip').className = 'chip up';
-  document.getElementById('kpiLeave').textContent = leave.length+'명';
-  document.getElementById('kpiLeaveChip').textContent = '전체 대비 '+(spaceAll.length?Math.round(leave.length/spaceAll.length*100):0)+'%';
-  document.getElementById('kpiLeaveChip').className = 'chip neutral';
+  document.getElementById(\'kpiTotal\').textContent = active.length+\'명\';
+  document.getElementById(\'kpiTotalChip\').textContent = \'재직 인원 기준\';
+  document.getElementById(\'kpiTotalChip\').className = \'chip up\';
+  document.getElementById(\'kpiLeave\').textContent = leave.length+\'명\';
+  document.getElementById(\'kpiLeaveChip\').textContent = \'전체 대비 \'+(spaceAll.length?Math.round(leave.length/spaceAll.length*100):0)+\'%\';
+  document.getElementById(\'kpiLeaveChip\').className = \'chip neutral\';
 
   renderDeptCard(active);
   renderSiteCard(spaceAll);
@@ -338,13 +432,13 @@ function renderDeptCard(active){
   active.forEach(r=>{
     const g = groupOf(r[ORG_FIELD]); if(!groupData[g]) groupData[g]={};
     const org = r[ORG_FIELD]; groupData[g][org]=(groupData[g][org]||0)+1;
-    if((r['직책코드명']||'').includes('팀장') || (r['직책코드명']||'').includes('부장') || (r['직책코드명']||'').includes('실장')){
-      if(!deptHeads[org]) deptHeads[org]=[]; deptHeads[org].push({name:r['성명'], title:r['직책코드명']});
+    if((r[\'직책코드명\']||\'\').includes(\'팀장\') || (r[\'직책코드명\']||\'\').includes(\'부장\') || (r[\'직책코드명\']||\'\').includes(\'실장\')){
+      if(!deptHeads[org]) deptHeads[org]=[]; deptHeads[org].push({name:r[\'성명\'], title:r[\'직책코드명\']});
     }
   });
   window.__deptHeadMap = deptHeads;
-  const [c1,c2] = themeColors(); const groupColor={'직속조직':c1,'우주연구소':c2};
-  let tiles='';
+  const [c1,c2] = themeColors(); const groupColor={\'직속조직\':c1,\'우주연구소\':c2};
+  let tiles=\'\';
   const pieData=[];
   GROUP_ORDER.forEach(g=>{
     const order = ORG_GROUPS[g];
@@ -354,65 +448,65 @@ function renderDeptCard(active){
     pieData.push({label:g, value:subtotal});
     tiles += `<div class="dept-group-head"><span>${g}</span><b>${subtotal}명</b></div>`;
     tiles += `<div class="dept-tile-grid">` + entries.map(([label,value])=>`
-      <div class="dept-tile" style="border-left-color:${groupColor[g]}" onclick="toggleDeptTooltip(event,'${esc(label)}')">
-        <div class="dept-tile-count">${value}<span>명</span></div><div class="dept-tile-name">${label}</div></div>`).join('') + `</div>`;
+      <div class="dept-tile" style="border-left-color:${groupColor[g]}" onclick="toggleDeptTooltip(event,\'${esc(label)}\')">
+        <div class="dept-tile-count">${value}<span>명</span></div><div class="dept-tile-name">${label}</div></div>`).join(\'\') + `</div>`;
   });
   tiles += `<div id="deptTooltip" class="flow-tooltip" style="display:none;"></div>`;
-  document.getElementById('deptContent').innerHTML = `<div class="split"><div class="tbl-col">${tiles}</div><div class="chart-col" id="deptPie"></div></div>`;
-  renderDonut('deptPie', pieData.map((d,i)=>({...d, color: i===0?c1:c2})), '직속조직 vs 우주연구소');
+  document.getElementById(\'deptContent\').innerHTML = `<div class="split"><div class="tbl-col">${tiles}</div><div class="chart-col" id="deptPie"></div></div>`;
+  renderDonut(\'deptPie\', pieData.map((d,i)=>({...d, color: i===0?c1:c2})), \'직속조직 vs 우주연구소\');
   const groupCounts={}; active.forEach(r=>{ const g=groupOf(r[ORG_FIELD]); groupCounts[g]=(groupCounts[g]||0)+1; });
-  document.getElementById('deptNote').textContent = GROUP_ORDER.filter(g=>groupCounts[g]).map(g=>`${g} ${groupCounts[g]}명`).join(' · ') + ' · 타일 클릭 시 조직장 표시';
+  document.getElementById(\'deptNote\').textContent = GROUP_ORDER.filter(g=>groupCounts[g]).map(g=>`${g} ${groupCounts[g]}명`).join(\' · \') + \' · 타일 클릭 시 조직장 표시\';
 }
 function toggleDeptTooltip(e,org){
-  const tip=document.getElementById('deptTooltip'); if(!tip) return;
-  if(tip.dataset.org===org && tip.style.display!=='none'){ tip.style.display='none'; tip.dataset.org=''; return; }
+  const tip=document.getElementById(\'deptTooltip\'); if(!tip) return;
+  if(tip.dataset.org===org && tip.style.display!==\'none\'){ tip.style.display=\'none\'; tip.dataset.org=\'\'; return; }
   const heads=(window.__deptHeadMap && window.__deptHeadMap[org])||[];
-  tip.innerHTML = `<div style="font-weight:700;margin-bottom:4px;">${org}</div>` + (heads.length ? heads.map(h=>`<div>${h.name} (${h.title})</div>`).join('') : '<div style="color:#999;">조직장 정보 없음</div>');
+  tip.innerHTML = `<div style="font-weight:700;margin-bottom:4px;">${org}</div>` + (heads.length ? heads.map(h=>`<div>${h.name} (${h.title})</div>`).join(\'\') : \'<div style="color:#999;">조직장 정보 없음</div>\');
   const rect=e.currentTarget.getBoundingClientRect();
-  tip.style.left=(rect.left+window.scrollX)+'px'; tip.style.top=(rect.bottom+window.scrollY+6)+'px'; tip.style.display='block'; tip.dataset.org=org;
+  tip.style.left=(rect.left+window.scrollX)+\'px\'; tip.style.top=(rect.bottom+window.scrollY+6)+\'px\'; tip.style.display=\'block\'; tip.dataset.org=org;
 }
-document.addEventListener('click', e=>{ const tip=document.getElementById('deptTooltip'); if(tip && !tip.contains(e.target) && !e.target.closest('.dept-tile')){ tip.style.display='none'; tip.dataset.org=''; } });
+document.addEventListener(\'click\', e=>{ const tip=document.getElementById(\'deptTooltip\'); if(tip && !tip.contains(e.target) && !e.target.closest(\'.dept-tile\')){ tip.style.display=\'none\'; tip.dataset.org=\'\'; } });
 
 function renderSiteCard(spaceAll){
   const counts={};
-  spaceAll.forEach(r=>{ const s=r['사업장']||'미기재'; counts[s]=(counts[s]||0)+1; });
+  spaceAll.forEach(r=>{ const s=r[\'사업장\']||\'미기재\'; counts[s]=(counts[s]||0)+1; });
   const labels = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
-  renderBarList('siteContent', labels.map(l=>({label:l, value:counts[l]})), {unit:'명'});
+  renderBarList(\'siteContent\', labels.map(l=>({label:l, value:counts[l]})), {unit:\'명\'});
 }
 
 function renderLevelCard(active){
   const counts={}; LEVEL_ORDER.forEach(l=>counts[l]=0);
-  active.forEach(r=>{ const {level}=classifyJobCode(r['직급코드']); counts[level]=(counts[level]||0)+1; });
-  const cats = LEVEL_ORDER.filter(l=> l!=='미분류' || counts['미분류']>0);
-  renderBarList('levelContent', cats.map(l=>({label:l, value:counts[l]})), {unit:'명'});
-  document.getElementById('levelNote').textContent = '직급코드 숫자 첫자리=레벨 · 총 '+active.length+'명';
+  active.forEach(r=>{ const {level}=classifyJobCode(r[\'직급코드\']); counts[level]=(counts[level]||0)+1; });
+  const cats = LEVEL_ORDER.filter(l=> l!==\'미분류\' || counts[\'미분류\']>0);
+  renderBarList(\'levelContent\', cats.map(l=>({label:l, value:counts[l]})), {unit:\'명\'});
+  document.getElementById(\'levelNote\').textContent = \'직급코드 숫자 첫자리=레벨 · 총 \'+active.length+\'명\';
 }
 
 function renderJobCard(active){
   const counts={};
-  active.forEach(r=>{ const {family}=classifyJobCode(r['직급코드']); counts[family]=(counts[family]||0)+1; });
+  active.forEach(r=>{ const {family}=classifyJobCode(r[\'직급코드\']); counts[family]=(counts[family]||0)+1; });
   const labels = Object.keys(counts); const colors = donutPalette(labels.length);
-  renderDonut('jobContent', labels.map((l,i)=>({label:l==='임원'?'임원':l+'직군', value:counts[l], color:colors[i]})), '총원(명)');
-  document.getElementById('jobNote').textContent = '직급코드 알파벳 기준 · 총 '+active.length+'명';
+  renderDonut(\'jobContent\', labels.map((l,i)=>({label:l===\'임원\'?\'임원\':l+\'직군\', value:counts[l], color:colors[i]})), \'총원(명)\');
+  document.getElementById(\'jobNote\').textContent = \'직급코드 알파벳 기준 · 총 \'+active.length+\'명\';
 }
 
 function renderEduCard(active){
   const groups={};
-  active.forEach(r=>{ const g=groupOf(r[ORG_FIELD]); const e=eduSimple((r['최종학력']||'').trim()); if(!groups[g]) groups[g]={}; groups[g][e]=(groups[g][e]||0)+1; });
-  const degrees=['박사','석사','학사이하']; const groupNames=GROUP_ORDER.filter(g=>groups[g]);
-  let rows='<tr><th class="lbl">조직명</th>'+degrees.map(d=>`<th>${d}</th>`).join('')+'<th>계</th></tr>';
+  active.forEach(r=>{ const g=groupOf(r[ORG_FIELD]); const e=eduSimple((r[\'최종학력\']||\'\').trim()); if(!groups[g]) groups[g]={}; groups[g][e]=(groups[g][e]||0)+1; });
+  const degrees=[\'박사\',\'석사\',\'학사이하\']; const groupNames=GROUP_ORDER.filter(g=>groups[g]);
+  let rows=\'<tr><th class="lbl">조직명</th>\'+degrees.map(d=>`<th>${d}</th>`).join(\'\')+\'<th>계</th></tr>\';
   const totals={박사:0,석사:0,학사이하:0};
   groupNames.forEach(g=>{ const gd=groups[g]||{}; let sum=0; rows+=`<tr><td class="lbl">${g}</td>`;
     degrees.forEach(d=>{ const v=gd[d]||0; sum+=v; totals[d]+=v; rows+=`<td>${v}</td>`; }); rows+=`<td>${sum}</td></tr>`; });
   const totalSum = degrees.reduce((a,d)=>a+totals[d],0);
-  rows += `<tr class="total"><td class="lbl">합계</td>${degrees.map(d=>`<td>${totals[d]}</td>`).join('')}<td>${totalSum}</td></tr>`;
-  document.getElementById('eduContent').innerHTML = `<table class="tbl">${rows}</table>`;
+  rows += `<tr class="total"><td class="lbl">합계</td>${degrees.map(d=>`<td>${totals[d]}</td>`).join(\'\')}<td>${totalSum}</td></tr>`;
+  document.getElementById(\'eduContent\').innerHTML = `<table class="tbl">${rows}</table>`;
 }
 
 function renderTenureCard(active){
   const base=baseDate();
   function tenureYears(row){
-    const digits=(row['그룹입사일']||'').replace(/[^0-9]/g,''); if(digits.length<8) return null;
+    const digits=(row[\'그룹입사일\']||\'\').replace(/[^0-9]/g,\'\'); if(digits.length<8) return null;
     const y=+digits.slice(0,4), m=+digits.slice(4,6)-1, d=+digits.slice(6,8); const joined=new Date(y,m,d);
     if(isNaN(joined.getTime())) return null; return (base-joined)/(1000*60*60*24*365.25);
   }
@@ -422,33 +516,33 @@ function renderTenureCard(active){
   tenures.forEach(({row,t})=>{ const team=row[ORG_FIELD]; if(!teamTenure[team]) teamTenure[team]=[]; teamTenure[team].push(t); });
   const teamData = Object.entries(teamTenure).map(([label,list])=>({label, value:Math.round(list.reduce((a,b)=>a+b,0)/list.length*100)/100})).sort((a,b)=>b.value-a.value);
   const avg = tenures.length ? tenures.reduce((a,{t})=>a+t,0)/tenures.length : 0;
-  renderBarList('teamTenureContent', teamData, {unit:'년', markValue:Math.round(avg*100)/100, markLabel:`우주사업부 평균 ${avg.toFixed(2)}년`});
-  document.getElementById('kpiTenure').textContent = avg.toFixed(2)+'년';
-  document.getElementById('kpiTenureChip').textContent = '그룹입사일 기준';
-  document.getElementById('kpiTenureChip').className = 'chip neutral';
+  renderBarList(\'teamTenureContent\', teamData, {unit:\'년\', markValue:Math.round(avg*100)/100, markLabel:`우주사업부 평균 ${avg.toFixed(2)}년`});
+  document.getElementById(\'kpiTenure\').textContent = avg.toFixed(2)+\'년\';
+  document.getElementById(\'kpiTenureChip\').textContent = \'그룹입사일 기준\';
+  document.getElementById(\'kpiTenureChip\').className = \'chip neutral\';
 }
 
 function renderCrosstab(active){
   const teams = SPACE_ORGS;
-  const cats = LEVEL_ORDER.filter(l=>l!=='미분류');
+  const cats = LEVEL_ORDER.filter(l=>l!==\'미분류\');
   const matrix = {}; teams.forEach(t=>{ matrix[t]={}; cats.forEach(c=>matrix[t][c]=0); });
-  active.forEach(r=>{ const org=r[ORG_FIELD]; if(!matrix[org]) return; const {level}=classifyJobCode(r['직급코드']); if(matrix[org][level]!==undefined) matrix[org][level]++; });
-  let html = '<table class="tbl"><tr><th class="lbl">팀</th>' + cats.map(c=>`<th>${c}</th>`).join('') + '<th>계</th></tr>';
+  active.forEach(r=>{ const org=r[ORG_FIELD]; if(!matrix[org]) return; const {level}=classifyJobCode(r[\'직급코드\']); if(matrix[org][level]!==undefined) matrix[org][level]++; });
+  let html = \'<table class="tbl"><tr><th class="lbl">팀</th>\' + cats.map(c=>`<th>${c}</th>`).join(\'\') + \'<th>계</th></tr>\';
   GROUP_ORDER.forEach(g=>{
     ORG_GROUPS[g].forEach(org=>{
       const row = matrix[org]; const sum = cats.reduce((a,c)=>a+row[c],0);
       if(sum===0 && !active.some(r=>r[ORG_FIELD]===org)) return;
-      html += `<tr><td class="lbl">${org}</td>` + cats.map(c=>`<td>${row[c]}</td>`).join('') + `<td>${sum}</td></tr>`;
+      html += `<tr><td class="lbl">${org}</td>` + cats.map(c=>`<td>${row[c]}</td>`).join(\'\') + `<td>${sum}</td></tr>`;
     });
   });
-  document.getElementById('crosstabContent').innerHTML = html + '</table>';
+  document.getElementById(\'crosstabContent\').innerHTML = html + \'</table>\';
 }
 
 /* ===== 5. 전월/당월 비교 ===== */
 function renderComparison(){
-  const prevMap = new Map(state.prev.map(r=>[r['사번'],r]));
-  const currMap = new Map(state.curr.map(r=>[r['사번'],r]));
-  const ym = (()=>{ const d=baseDate(); return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,'0'); })();
+  const prevMap = new Map(state.prev.map(r=>[r[\'사번\'],r]));
+  const currMap = new Map(state.curr.map(r=>[r[\'사번\'],r]));
+  const ym = (()=>{ const d=baseDate(); return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,\'0\'); })();
   const flow={채용:0,복직:0,전입:0,퇴직:0,휴직:0,전출:0}; const flowNames={채용:[],복직:[],전입:[],퇴직:[],휴직:[],전출:[]};
   const changeRows=[];
 
@@ -456,93 +550,484 @@ function renderComparison(){
     if(!isSpace(row[ORG_FIELD])) return;
     const prev = prevMap.get(id);
     if(!prev){
-      const hireYM=(row['입사일']||'').replace(/[^0-9]/g,'').slice(0,6);
-      const type = hireYM===ym ? '채용' : '전입';
-      flow[type]++; flowNames[type].push(row['성명']);
-      changeRows.push({name:row['성명'], changes:[{type:type==='채용'?'신규채용':'전입', before:'-', after:row[ORG_FIELD], tag:'hire', position:row['직급명']}]});
+      const hireYM=(row[\'입사일\']||\'\').replace(/[^0-9]/g,\'\').slice(0,6);
+      const type = hireYM===ym ? \'채용\' : \'전입\';
+      flow[type]++; flowNames[type].push(row[\'성명\']);
+      changeRows.push({name:row[\'성명\'], changes:[{type:type===\'채용\'?\'신규채용\':\'전입\', before:\'-\', after:row[ORG_FIELD], tag:\'hire\', position:row[\'직급명\']}]});
       return;
     }
     if(!isSpace(prev[ORG_FIELD])){
-      flow['전입']++; flowNames['전입'].push(row['성명']);
-      changeRows.push({name:row['성명'], changes:[{type:'전입(타사업부)', before:prev[ORG_FIELD], after:row[ORG_FIELD], tag:'transfer-in', position:prev['직급명']}]});
+      flow[\'전입\']++; flowNames[\'전입\'].push(row[\'성명\']);
+      changeRows.push({name:row[\'성명\'], changes:[{type:\'전입(타사업부)\', before:prev[ORG_FIELD], after:row[ORG_FIELD], tag:\'transfer-in\', position:prev[\'직급명\']}]});
       return;
     }
     const changes=[];
-    if(prev['재직상태']==='재직' && row['재직상태']==='휴직'){ flow['휴직']++; flowNames['휴직'].push(row['성명']); changes.push({type:'휴직', before:'재직', after:row['휴직구분명']||'휴직', tag:'leave', position:prev['직급명']}); }
-    if(prev['재직상태']==='휴직' && row['재직상태']==='재직'){ flow['복직']++; flowNames['복직'].push(row['성명']); changes.push({type:'복직', before:'휴직', after:'재직', tag:'promo', position:prev['직급명']}); }
-    if(prev[ORG_FIELD] !== row[ORG_FIELD]) changes.push({type:'전배', before:prev[ORG_FIELD], after:row[ORG_FIELD], tag:'move', position:prev['직급명']});
-    if(prev['직급명'] !== row['직급명']) changes.push({type:'직급변동', before:prev['직급명'], after:row['직급명'], tag:'promo', position:prev['직급명']});
-    if(changes.length) changeRows.push({name:row['성명'], changes});
+    if(prev[\'재직상태\']===\'재직\' && row[\'재직상태\']===\'휴직\'){ flow[\'휴직\']++; flowNames[\'휴직\'].push(row[\'성명\']); changes.push({type:\'휴직\', before:\'재직\', after:row[\'휴직구분명\']||\'휴직\', tag:\'leave\', position:prev[\'직급명\']}); }
+    if(prev[\'재직상태\']===\'휴직\' && row[\'재직상태\']===\'재직\'){ flow[\'복직\']++; flowNames[\'복직\'].push(row[\'성명\']); changes.push({type:\'복직\', before:\'휴직\', after:\'재직\', tag:\'promo\', position:prev[\'직급명\']}); }
+    if(prev[ORG_FIELD] !== row[ORG_FIELD]) changes.push({type:\'전배\', before:prev[ORG_FIELD], after:row[ORG_FIELD], tag:\'move\', position:prev[\'직급명\']});
+    if(prev[\'직급명\'] !== row[\'직급명\']) changes.push({type:\'직급변동\', before:prev[\'직급명\'], after:row[\'직급명\'], tag:\'promo\', position:prev[\'직급명\']});
+    if(changes.length) changeRows.push({name:row[\'성명\'], changes});
   });
   prevMap.forEach((row,id)=>{
     if(!isSpace(row[ORG_FIELD])) return;
     const curr = currMap.get(id);
-    if(!curr){ flow['퇴직']++; flowNames['퇴직'].push(row['성명']); changeRows.push({name:row['성명'], changes:[{type:'퇴직', before:row[ORG_FIELD], after:'-', tag:'retire', position:row['직급명']}]}); return; }
-    if(!isSpace(curr[ORG_FIELD])){ flow['전출']++; flowNames['전출'].push(row['성명']); changeRows.push({name:row['성명'], changes:[{type:'전출(타사업부)', before:row[ORG_FIELD], after:curr[ORG_FIELD], tag:'transfer-out', position:row['직급명']}]}); }
+    if(!curr){ flow[\'퇴직\']++; flowNames[\'퇴직\'].push(row[\'성명\']); changeRows.push({name:row[\'성명\'], changes:[{type:\'퇴직\', before:row[ORG_FIELD], after:\'-\', tag:\'retire\', position:row[\'직급명\']}]}); return; }
+    if(!isSpace(curr[ORG_FIELD])){ flow[\'전출\']++; flowNames[\'전출\'].push(row[\'성명\']); changeRows.push({name:row[\'성명\'], changes:[{type:\'전출(타사업부)\', before:row[ORG_FIELD], after:curr[ORG_FIELD], tag:\'transfer-out\', position:row[\'직급명\']}]}); }
   });
   renderFlowCard(flow,flowNames); renderChangeTable(changeRows);
 }
 
 function renderFlowCard(flow,flowNames){
-  const prevCount = state.prev.filter(r=>r['재직상태']==='재직' && isSpace(r[ORG_FIELD])).length;
-  const currCount = state.curr.filter(r=>r['재직상태']==='재직' && isSpace(r[ORG_FIELD])).length;
+  const prevCount = state.prev.filter(r=>r[\'재직상태\']===\'재직\' && isSpace(r[ORG_FIELD])).length;
+  const currCount = state.curr.filter(r=>r[\'재직상태\']===\'재직\' && isSpace(r[ORG_FIELD])).length;
   const diff = currCount-prevCount;
   window.__flowNameMap = flowNames;
   const signed={채용:flow.채용,복직:flow.복직,전입:flow.전입,퇴직:-flow.퇴직,휴직:-flow.휴직,전출:-flow.전출};
   const maxAbs = Math.max(1, ...Object.values(signed).map(Math.abs));
-  const bars = Object.keys(signed).map(c=>{ const v=signed[c]; const pct=Math.max(4,Math.round(Math.abs(v)/maxAbs*100)); const neg=v<0?' neg':'';
-    return `<div class="vbar-col" onclick="toggleFlowTooltip(event,'${c}')"><div class="vbar-track"><div class="vbar-fill${neg}" style="height:${pct}%"></div></div><div class="vbar-value">${v}</div><div class="vbar-label">${c}</div></div>`; }).join('');
-  document.getElementById('flowContent').innerHTML = `
+  const bars = Object.keys(signed).map(c=>{ const v=signed[c]; const pct=Math.max(4,Math.round(Math.abs(v)/maxAbs*100)); const neg=v<0?\' neg\':\'\';
+    return `<div class="vbar-col" onclick="toggleFlowTooltip(event,\'${c}\')"><div class="vbar-track"><div class="vbar-fill${neg}" style="height:${pct}%"></div></div><div class="vbar-value">${v}</div><div class="vbar-label">${c}</div></div>`; }).join(\'\');
+  document.getElementById(\'flowContent\').innerHTML = `
     <div class="miniflow"><div><div class="num">${prevCount}명</div><div class="lab">전월 인원</div></div><div class="arrow">→</div>
       <div><div class="num">${currCount}명</div><div class="lab">당월 인원</div></div>
-      <div class="diff chip ${diff>=0?'up':'down'}">${diff>=0?'▲':'▼'} ${Math.abs(diff)}명</div></div>
+      <div class="diff chip ${diff>=0?\'up\':\'down\'}">${diff>=0?\'▲\':\'▼\'} ${Math.abs(diff)}명</div></div>
     <div class="vbar-wrap">${bars}</div>
     <div class="flow-note">채용/전입은 입사일 연월 기준 자동 구분됩니다.</div>
     <div id="flowTooltip" class="flow-tooltip" style="display:none;"></div>`;
-  document.getElementById('kpiChanges').textContent = Object.values(flow).reduce((a,b)=>a+b,0)+'건';
-  document.getElementById('kpiChangesChip').textContent='전월 대비 변동'; document.getElementById('kpiChangesChip').className='chip up';
+  document.getElementById(\'kpiChanges\').textContent = Object.values(flow).reduce((a,b)=>a+b,0)+\'건\';
+  document.getElementById(\'kpiChangesChip\').textContent=\'전월 대비 변동\'; document.getElementById(\'kpiChangesChip\').className=\'chip up\';
 }
 function toggleFlowTooltip(e,category){
-  const tip=document.getElementById('flowTooltip'); const names=(window.__flowNameMap && window.__flowNameMap[category])||[];
-  if(tip.dataset.cat===category && tip.style.display!=='none'){ tip.style.display='none'; tip.dataset.cat=''; return; }
-  tip.innerHTML = `<div style="font-weight:700;margin-bottom:4px;">${category} (${names.length}명)</div>` + (names.length?names.map(n=>`<div>${n}</div>`).join(''):'<div style="color:#999;">해당 인원 없음</div>');
-  const rect=e.currentTarget.getBoundingClientRect(); tip.style.left=(rect.left+window.scrollX)+'px'; tip.style.top=(rect.bottom+window.scrollY+6)+'px'; tip.style.display='block'; tip.dataset.cat=category;
+  const tip=document.getElementById(\'flowTooltip\'); const names=(window.__flowNameMap && window.__flowNameMap[category])||[];
+  if(tip.dataset.cat===category && tip.style.display!==\'none\'){ tip.style.display=\'none\'; tip.dataset.cat=\'\'; return; }
+  tip.innerHTML = `<div style="font-weight:700;margin-bottom:4px;">${category} (${names.length}명)</div>` + (names.length?names.map(n=>`<div>${n}</div>`).join(\'\'):\'<div style="color:#999;">해당 인원 없음</div>\');
+  const rect=e.currentTarget.getBoundingClientRect(); tip.style.left=(rect.left+window.scrollX)+\'px\'; tip.style.top=(rect.bottom+window.scrollY+6)+\'px\'; tip.style.display=\'block\'; tip.dataset.cat=category;
 }
-document.addEventListener('click', e=>{ const tip=document.getElementById('flowTooltip'); if(tip && !tip.contains(e.target) && !e.target.closest('.vbar-col')){ tip.style.display='none'; tip.dataset.cat=''; } });
+document.addEventListener(\'click\', e=>{ const tip=document.getElementById(\'flowTooltip\'); if(tip && !tip.contains(e.target) && !e.target.closest(\'.vbar-col\')){ tip.style.display=\'none\'; tip.dataset.cat=\'\'; } });
 
 function renderChangeTable(rows){
   const totalChanges = rows.reduce((a,r)=>a+r.changes.length,0);
-  document.getElementById('changeNote').textContent = `당월 기준 · ${rows.length}명 · 총 ${totalChanges}건`;
-  if(rows.length===0){ document.getElementById('changeContent').innerHTML='<div class="empty-state">전월 대비 변동 사항이 없습니다</div>'; return; }
+  document.getElementById(\'changeNote\').textContent = `당월 기준 · ${rows.length}명 · 총 ${totalChanges}건`;
+  if(rows.length===0){ document.getElementById(\'changeContent\').innerHTML=\'<div class="empty-state">전월 대비 변동 사항이 없습니다</div>\'; return; }
   const flat=[]; rows.forEach(r=>r.changes.forEach(c=>flat.push({name:r.name, ...c})));
   const groups={}; flat.forEach(c=>{ (groups[c.type]=groups[c.type]||[]).push(c); });
-  const TYPE_ORDER=['신규채용','전입(타사업부)','전배','직급변동','휴직','복직','전출(타사업부)','퇴직'];
+  const TYPE_ORDER=[\'신규채용\',\'전입(타사업부)\',\'전배\',\'직급변동\',\'휴직\',\'복직\',\'전출(타사업부)\',\'퇴직\'];
   const orderedTypes = Object.keys(groups).sort((a,b)=>{ const ia=TYPE_ORDER.indexOf(a), ib=TYPE_ORDER.indexOf(b); return (ia===-1?999:ia)-(ib===-1?999:ib); });
   const body = orderedTypes.map(type=>{
     const list=groups[type]; const tag=list[0].tag;
     const head=`<tr class="chg-group-head"><td colspan="2"><span class="tag ${tag}">${type}</span><span class="chg-group-count">${list.length}건</span></td></tr>`;
-    const bodyRows = list.map(c=>`<tr><td class="lbl">${c.name}<span class="chg-position">${c.position?' · '+c.position:''}</span></td><td><span class="chg-arrow">${c.before} -> ${c.after}</span></td></tr>`).join('');
+    const bodyRows = list.map(c=>`<tr><td class="lbl">${c.name}<span class="chg-position">${c.position?\' · \'+c.position:\'\'}</span></td><td><span class="chg-arrow">${c.before} -> ${c.after}</span></td></tr>`).join(\'\');
     return head+bodyRows;
-  }).join('');
-  document.getElementById('changeContent').innerHTML = `<table class="tbl"><tr><th class="lbl">구분/성명</th><th>변동내역</th></tr>${body}</table>`;
+  }).join(\'\');
+  document.getElementById(\'changeContent\').innerHTML = `<table class="tbl"><tr><th class="lbl">구분/성명</th><th>변동내역</th></tr>${body}</table>`;
 }
 
 /* ===== 6. 스냅샷 저장 ===== */
 function exportSnapshot(){
-  if(!state.curr){ alert('먼저 당월 명부 CSV를 업로드해주세요.'); return; }
+  if(!state.curr){ alert(\'먼저 당월 명부 CSV를 업로드해주세요.\'); return; }
   const clone = document.documentElement.cloneNode(true);
-  const head = clone.querySelector('head');
+  const head = clone.querySelector(\'head\');
   const rootStyle = getComputedStyle(document.documentElement);
-  const themeTag = document.createElement('style');
-  themeTag.textContent = ':root{' + ['--c1','--c2','--c3','--c4','--dark'].map(v=>`${v}:${rootStyle.getPropertyValue(v).trim()};`).join('') + '}';
+  const themeTag = document.createElement(\'style\');
+  themeTag.textContent = \':root{\' + [\'--c1\',\'--c2\',\'--c3\',\'--c4\',\'--dark\'].map(v=>`${v}:${rootStyle.getPropertyValue(v).trim()};`).join(\'\') + \'}\';
   head.appendChild(themeTag);
-  ['.data-bar','#uploadErrorBanner','.theme-panel'].forEach(sel=>{ const el=clone.querySelector(sel); if(el) el.remove(); });
-  const dateVal = document.getElementById('reportDate').value || new Date().toISOString().slice(0,10);
-  const metaEl = clone.querySelector('.meta'); if(metaEl) metaEl.textContent = '기준일 ' + dateVal + ' (저장 시점 고정)';
-  const html = '<!DOCTYPE html>\n' + clone.outerHTML;
-  const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-  const url = URL.createObjectURL(blob); const a = document.createElement('a');
-  a.href=url; a.download=`우주사업부_인원월보_${dateVal.replace(/-/g,'')}.html`;
+  [\'.data-bar\',\'#uploadErrorBanner\',\'.theme-panel\'].forEach(sel=>{ const el=clone.querySelector(sel); if(el) el.remove(); });
+  const dateVal = document.getElementById(\'reportDate\').value || new Date().toISOString().slice(0,10);
+  const metaEl = clone.querySelector(\'.meta\'); if(metaEl) metaEl.textContent = \'기준일 \' + dateVal + \' (저장 시점 고정)\';
+  const html = \'<!DOCTYPE html>\n\' + clone.outerHTML;
+  const blob = new Blob([html], {type:\'text/html;charset=utf-8\'});
+  const url = URL.createObjectURL(blob); const a = document.createElement(\'a\');
+  a.href=url; a.download=`우주사업부_인원월보_${dateVal.replace(/-/g,\'\')}.html`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
+
+
+
+-----Original Message-----
+보낸사람: "윤수지"<yhmk5021@naver.com>
+받는사람: ""<suji.yoon@hanwha.com>
+참조:
+날짜: 2026. 8. 3 오후 2:49:06
+제목: github 대시보드용 코드
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>우주사업부 인원현황</title>
+<style>
+  /* ===== 엑셀 보고서 톤앤매너: 흰 배경, 검정 글씨, 얇은 테두리, 점선 구분선 ===== */
+  :root{
+    --ink:#000000; --sub:#595959; --line:#000000; --dash:#B0B0B0;
+    --head-bg:#D9D9D9; --sub-bg:#EDEDED; --total-bg:#1F3864; --total-ink:#FFFFFF;
+    --bg:#FFFFFF; --err:#C00000;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; padding:24px 28px 60px; background:var(--bg); color:var(--ink);
+    font-family:\\'Malgun Gothic\\',\\'맑은 고딕\\',Dotum,sans-serif; font-size:13px; line-height:1.5;
+    max-width:1100px; margin-left:auto; margin-right:auto;
+  }
+
+  /* 상단 타이틀 */
+  .titlebar{ display:flex; justify-content:space-between; align-items:flex-end; border-bottom:3px double var(--ink); padding-bottom:8px; margin-bottom:14px; }
+  .titlebar h1{ font-size:20px; margin:0; letter-spacing:-0.3px; }
+  .titlebar .meta{ font-size:12px; color:var(--sub); text-align:right; }
+  .titlebar .meta input[type=date]{ font-family:inherit; font-size:12px; border:1px solid #999; padding:2px 4px; }
+
+  /* 업로드 툴바 (보고서 본문은 아니고 도구 영역이라 옅게 처리) */
+  .toolbar{ background:#F7F7F7; border:1px solid #CCC; padding:8px 12px; margin-bottom:18px; font-size:12px; display:flex; gap:16px; flex-wrap:wrap; align-items:center; }
+  .toolbar .f{ display:flex; gap:6px; align-items:center; }
+  .toolbar input[type=file]{ font-size:12px; }
+  .toolbar .req{ font-weight:700; }
+  .toolbar .req.must{ color:var(--err); }
+  .toolbar button{ font-family:inherit; font-size:12px; padding:4px 10px; border:1px solid #999; background:#fff; cursor:pointer; }
+  .errbox{ display:none; border:1px solid var(--err); color:var(--err); background:#FDECEC; padding:8px 12px; font-size:12px; margin-bottom:14px; }
+
+  /* 섹션 제목 */
+  .sec{ margin-top:26px; }
+  .sec h2{ font-size:14px; margin:0 0 8px; }
+  .sec h2::before{ content:\\'■ \\'; }
+
+  /* 표 */
+  table.rpt{ border-collapse:collapse; width:100%; font-size:12.5px; }
+  table.rpt th{ background:var(--head-bg); border:1px solid var(--line); padding:6px 8px; font-weight:700; text-align:center; }
+  table.rpt td{ border-left:1px solid var(--line); border-right:1px solid var(--line); border-bottom:1px dashed var(--dash); padding:6px 8px; text-align:center; }
+  table.rpt tr:first-child td{ border-top:1px solid var(--line); }
+  table.rpt td.lbl{ text-align:left; }
+  table.rpt tr.subtotal td{ background:var(--sub-bg); font-weight:700; border-bottom:1px solid var(--line); }
+  table.rpt tr.total td{ background:var(--total-bg); color:var(--total-ink); font-weight:700; border-bottom:1px solid var(--line); }
+
+  /* 표+차트 좌우 배치 */
+  .split{ display:flex; gap:24px; align-items:flex-start; flex-wrap:wrap; }
+  .split .tbl-col{ flex:1 1 420px; }
+  .split .chart-col{ flex:1 1 260px; display:flex; flex-direction:column; align-items:center; }
+  .legend{ font-size:11.5px; margin-top:8px; }
+  .legend .row{ display:flex; align-items:center; gap:6px; margin-bottom:3px; }
+  .legend i{ width:10px; height:10px; display:inline-block; }
+
+  .empty{ color:var(--sub); font-size:12px; padding:14px 0; }
+  .footnote{ font-size:11px; color:var(--sub); margin-top:30px; border-top:1px solid #CCC; padding-top:8px; }
+</style>
+</head>
+<body>
+
+  <div class="titlebar">
+    <h1>우주사업부 인원현황</h1>
+    <div class="meta">기준일 <input type="date" id="reportDate"></div>
+  </div>
+
+  <div class="toolbar">
+    <div class="f"><span class="req must">[필수]</span> 당월 명부(csv) <input type="file" id="currCsv" accept=".csv" onchange="onRosterFile(\\'curr\\', this.files[0])"> <span id="currStatus" style="color:#666;">미선택</span></div>
+    <div class="f"><span class="req">[선택]</span> 전월 명부(csv) <input type="file" id="prevCsv" accept=".csv" onchange="onRosterFile(\\'prev\\', this.files[0])"> <span id="prevStatus" style="color:#666;">미선택</span></div>
+    <button onclick="exportSnapshot()">현재 화면 HTML로 저장</button>
+  </div>
+  <div class="errbox" id="errBox"></div>
+
+  <div class="sec">
+    <h2>전체 인원 내역</h2>
+    <div id="overallTable"><div class="empty">당월 명부를 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>이동 세부 내역</h2>
+    <div id="moveTable"><div class="empty">전월·당월 명부를 모두 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>부서별 인원 현황</h2>
+    <div id="deptSection"><div class="empty">당월 명부를 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>레벨/직급별 인원 현황</h2>
+    <div id="levelSection"><div class="empty">당월 명부를 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>직군별 인원 현황</h2>
+    <div id="jobSection"><div class="empty">당월 명부를 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="sec">
+    <h2>조직별 학력사항</h2>
+    <div id="eduSection"><div class="empty">당월 명부를 업로드하면 표시됩니다</div></div>
+  </div>
+
+  <div class="footnote">CSV는 브라우저 안에서만 처리되며 외부로 전송되지 않습니다. · 전사 8개 사업부 비교는 사업부 매핑표를 받으면 추가됩니다.</div>
+
+<script>
+/* =========================================================
+   0. 설정 — 우주사업부 조직/직급 분류 기준 (조직 개편 시 여기만 수정)
+   ========================================================= */
+const ORG_GROUPS = {
+  \\'직속조직\\': [\\'우주사업총괄\\',\\'우주사업부\\',\\'우주사업전략팀\\',\\'우주사업단\\',\\'솔루션사업팀\\',\\'차세대위성체계팀\\',\\'제주우주센터\\'],
+  \\'우주연구소\\': [\\'위성체계팀\\',\\'위성본체팀\\',\\'위성탑재체1팀\\',\\'위성탑재체2팀\\',\\'위성탑재체3팀\\',\\'위성지상체팀\\',\\'위성기계팀\\']
+};
+const GROUP_ORDER = [\\'직속조직\\',\\'우주연구소\\'];
+const SPACE_ORGS = Object.values(ORG_GROUPS).flat();
+const ORG_FIELD = \\'조직명\\'; // 원소속부서가 아닌 조직명을 기준으로 소속 판단 (파견자 반영)
+function groupOf(org){ for(const [g,list] of Object.entries(ORG_GROUPS)) if(list.includes(org)) return g; return \\'미분류\\'; }
+function isSpace(org){ return SPACE_ORGS.includes((org||\\'\\').trim()); }
+
+const EXEC_CODES = [\\'P\\',\\'VP\\',\\'ED\\'];
+const LEVEL_ORDER = [\\'임원\\',\\'7\\',\\'6\\',\\'5\\',\\'4\\',\\'3\\',\\'2\\',\\'1\\',\\'계약직\\',\\'미분류\\'];
+function classifyJobCode(raw){
+  const code = (raw||\\'\\').trim().toUpperCase();
+  if(EXEC_CODES.includes(code)) return { level:\\'임원\\', family:\\'임원\\' };
+  const m = code.match(/^([A-Z]+)(\d+)/);
+  if(m) return { level:m[2].charAt(0), family:m[1] };
+  return { level:\\'미분류\\', family:\\'미분류\\' };
+}
+function isExec(row){ return classifyJobCode(row[\\'직급코드\\']).level === \\'임원\\'; }
+function eduSimple(edu){ if(edu===\\'박사\\') return \\'박사\\'; if(edu===\\'석사\\') return \\'석사\\'; return \\'학사이하\\'; }
+
+const REQUIRED_COLUMNS = [\\'사번\\',\\'성명\\',\\'재직상태\\',\\'조직명\\',\\'법정생년월일\\',\\'최종학력\\',\\'직급코드\\'];
+const OFFICE_PALETTE = [\\'#4472C4\\',\\'#ED7D31\\',\\'#A5A5A5\\',\\'#FFC000\\',\\'#5B9BD5\\',\\'#70AD47\\',\\'#264478\\',\\'#9E480E\\',\\'#636363\\',\\'#997300\\',\\'#255E91\\',\\'#43682B\\'];
+
+/* =========================================================
+   1. CSV 파싱 (외부 라이브러리 없음 — 사내망 CDN 차단 대비)
+   ========================================================= */
+const state = { curr:null, prev:null };
+
+function parseCsvText(text){
+  const lines = text.split(/\r?\n/).filter(l=>l.length>0);
+  const rows = lines.map(line=>{
+    const cells=[]; let cur=\\'\\', q=false;
+    for(let i=0;i<line.length;i++){
+      const ch=line[i];
+      if(ch===\\'"\\'){ q=!q; }
+      else if(ch===\\',\\' && !q){ cells.push(cur); cur=\\'\\'; }
+      else cur+=ch;
+    }
+    cells.push(cur);
+    return cells.map(c=>c.trim());
+  });
+  const header = rows[0];
+  return rows.slice(1).map(r=>{ const o={}; header.forEach((h,i)=>o[h]=r[i]??\\'\\'); return o; });
+}
+
+function showErr(msg){ const box=document.getElementById(\\'errBox\\'); box.textContent=msg; box.style.display=\\'block\\'; }
+function clearErr(){ const box=document.getElementById(\\'errBox\\'); box.style.display=\\'none\\'; box.textContent=\\'\\'; }
+
+function onRosterFile(which, file){
+  if(!file) return;
+  const statusEl = document.getElementById(which===\\'prev\\'?\\'prevStatus\\':\\'currStatus\\');
+  if(!/\.csv$/i.test(file.name)){
+    showErr(\\'CSV 파일(.csv)만 업로드할 수 있습니다. 엑셀에서 "다른 이름으로 저장 → CSV UTF-8"로 변환해주세요.\\');
+    statusEl.textContent=\\'업로드 실패\\'; return;
+  }
+  const reader = new FileReader();
+  reader.onerror = () => { showErr(\\'파일을 읽는 중 오류가 발생했습니다.\\'); statusEl.textContent=\\'업로드 실패\\'; };
+  reader.onload = e => {
+    try{
+      const text = e.target.result;
+      if((text.match(/\uFFFD/g)||[]).length > 3){
+        showErr(\\'인코딩을 읽지 못했습니다. 엑셀에서 "CSV UTF-8"로 다시 저장한 뒤 업로드해주세요.\\');
+        statusEl.textContent=\\'업로드 실패\\'; return;
+      }
+      const rows = parseCsvText(text);
+      if(rows.length===0){ showErr(\\'데이터가 없는 파일입니다.\\'); statusEl.textContent=\\'업로드 실패\\'; return; }
+      const missing = REQUIRED_COLUMNS.filter(c=>!Object.keys(rows[0]).includes(c));
+      if(missing.length){ showErr(\\'필수 컬럼이 없습니다: \\'+missing.join(\\', \\')); statusEl.textContent=\\'업로드 실패\\'; return; }
+      clearErr();
+      state[which] = rows;
+      statusEl.textContent = rows.length+\\'명 로드됨\\';
+      if(which===\\'curr\\') renderAll();
+      if(state.curr && state.prev) renderMoves();
+    }catch(err){ showErr(\\'처리 중 오류: \\'+err.message); statusEl.textContent=\\'업로드 실패\\'; }
+  };
+  reader.readAsText(file,\\'UTF-8\\');
+}
+
+function baseDate(){ const v=document.getElementById(\\'reportDate\\').value; return v ? new Date(v) : new Date(); }
+(function(){ document.getElementById(\\'reportDate\\').value = new Date().toISOString().slice(0,10); })();
+
+/* =========================================================
+   2. 공용 렌더 헬퍼 — 표 / 파이차트
+   ========================================================= */
+function renderTable(containerId, headers, rows, opts={}){
+  let html = \\'<table class="rpt"><tr>\\' + headers.map(h=>`<th>${h}</th>`).join(\\'\\') + \\'</tr>\\';
+  rows.forEach(r=>{
+    const cls = r._cls ? ` class="${r._cls}"` : \\'\\';
+    html += `<tr${cls}>` + r.cells.map((c,i)=>`<td class="${i===0?\\'lbl\\':\\'\\'}">${c}</td>`).join(\\'\\') + \\'</tr>\\';
+  });
+  html += \\'</table>\\';
+  document.getElementById(containerId).innerHTML = html;
+}
+
+function pieSVG(data, size=180){
+  const total = data.reduce((a,d)=>a+d.value,0);
+  const cx=size/2, cy=size/2, r=size/2-4;
+  const toRad = d => d*Math.PI/180;
+  const pt = (deg,radius) => [cx+radius*Math.cos(toRad(deg)), cy+radius*Math.sin(toRad(deg))];
+  let start=-90, paths=\\'\\';
+  data.forEach(d=>{
+    const sweep = total ? d.value/total*360 : 0;
+    const end = start+sweep;
+    const [x1,y1]=pt(start,r), [x2,y2]=pt(end,r);
+    const large = sweep>180?1:0;
+    paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${d.color}" stroke="#fff" stroke-width="1"/>`;
+    start = end;
+  });
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}</svg>`;
+}
+
+function renderPieWithLegend(containerId, dataRaw){
+  const total = dataRaw.reduce((a,d)=>a+d.value,0);
+  const data = dataRaw.map((d,i)=>({...d, color: d.color || OFFICE_PALETTE[i % OFFICE_PALETTE.length]}));
+  const legend = data.map(d=>{
+    const pct = total ? Math.round(d.value/total*100) : 0;
+    return `<div class="row"><i style="background:${d.color}"></i>${d.label} ${d.value}명 (${pct}%)</div>`;
+  }).join(\\'\\');
+  document.getElementById(containerId).innerHTML = pieSVG(data) + `<div class="legend">${legend}</div>`;
+}
+
+/* =========================================================
+   3. 당월 명부 기준 집계/렌더
+   ========================================================= */
+function renderAll(){
+  const spaceAll = state.curr.filter(r=>isSpace(r[ORG_FIELD]));
+  const active = spaceAll.filter(r=>r[\\'재직상태\\']===\\'재직\\');
+  const leave = spaceAll.filter(r=>r[\\'재직상태\\']===\\'휴직\\');
+
+  renderOverallTable(spaceAll, active, leave);
+  renderDeptSection(active);
+  renderLevelSection(active);
+  renderJobSection(active);
+  renderEduSection(active);
+}
+
+function renderOverallTable(spaceAll, active, leave){
+  const bySite = {};
+  spaceAll.forEach(r=>{ const s=r[\\'사업장\\']||\\'미기재\\'; bySite[s]=(bySite[s]||0)+1; });
+  const siteHeaders = Object.keys(bySite);
+  const headers = [\\'총원(계)\\',\\'재직\\',\\'휴직\\', ...siteHeaders];
+  const cells = [String(spaceAll.length), String(active.length), String(leave.length), ...siteHeaders.map(s=>String(bySite[s]))];
+  renderTable(\\'overallTable\\', headers, [{cells, _cls:\\'total\\'}]);
+}
+
+function renderDeptSection(active){
+  let html = \\'<div class="split"><div class="tbl-col">\\';
+  const groupData = {}; GROUP_ORDER.forEach(g=>groupData[g]={});
+  active.forEach(r=>{ const g=groupOf(r[ORG_FIELD]); if(!groupData[g]) groupData[g]={}; const org=r[ORG_FIELD]; groupData[g][org]=(groupData[g][org]||0)+1; });
+
+  let rows = [];
+  const pieData = [];
+  GROUP_ORDER.forEach(g=>{
+    const entries = Object.entries(groupData[g]||{});
+    let sub = 0;
+    entries.forEach(([org,cnt])=>{ rows.push({cells:[org, String(cnt)]}); sub+=cnt; });
+    rows.push({cells:[g+\\' 소계\\', String(sub)], _cls:\\'subtotal\\'});
+    pieData.push({label:g, value:sub});
+  });
+  const grandTotal = pieData.reduce((a,d)=>a+d.value,0);
+  rows.push({cells:[\\'우주사업부 총계\\', String(grandTotal)], _cls:\\'total\\'});
+
+  document.getElementById(\\'deptSection\\').innerHTML =
+    \\'<div class="split"><div class="tbl-col" id="deptTbl"></div><div class="chart-col" id="deptPie"></div></div>\\';
+  renderTable(\\'deptTbl\\', [\\'부서\\',\\'인원\\'], rows);
+  renderPieWithLegend(\\'deptPie\\', pieData);
+}
+
+function renderLevelSection(active){
+  const counts = {}; LEVEL_ORDER.forEach(l=>counts[l]=0);
+  active.forEach(r=>{ const {level}=classifyJobCode(r[\\'직급코드\\']); counts[level]=(counts[level]||0)+1; });
+  const cats = LEVEL_ORDER.filter(l=> l!==\\'미분류\\' || counts[\\'미분류\\']>0);
+  const rows = cats.map(l=>({cells:[l, String(counts[l])]}));
+  rows.push({cells:[\\'계\\', String(active.length)], _cls:\\'total\\'});
+  document.getElementById(\\'levelSection\\').innerHTML =
+    \\'<div class="split"><div class="tbl-col" id="levelTbl"></div><div class="chart-col" id="levelPie"></div></div>\\';
+  renderTable(\\'levelTbl\\', [\\'레벨\\',\\'인원\\'], rows);
+  renderPieWithLegend(\\'levelPie\\', cats.map(l=>({label:l, value:counts[l]})));
+}
+
+function renderJobSection(active){
+  const counts = {};
+  active.forEach(r=>{ const {family}=classifyJobCode(r[\\'직급코드\\']); counts[family]=(counts[family]||0)+1; });
+  const labels = Object.keys(counts);
+  const rows = labels.map(l=>({cells:[l===\\'임원\\'?\\'임원\\':l+\\'직군\\', String(counts[l])]}));
+  rows.push({cells:[\\'계\\', String(active.length)], _cls:\\'total\\'});
+  document.getElementById(\\'jobSection\\').innerHTML =
+    \\'<div class="split"><div class="tbl-col" id="jobTbl"></div><div class="chart-col" id="jobPie"></div></div>\\';
+  renderTable(\\'jobTbl\\', [\\'직군\\',\\'인원\\'], rows);
+  renderPieWithLegend(\\'jobPie\\', labels.map(l=>({label:l===\\'임원\\'?\\'임원\\':l+\\'직군\\', value:counts[l]})));
+}
+
+function renderEduSection(active){
+  const groups = {};
+  active.forEach(r=>{ const g=groupOf(r[ORG_FIELD]); const e=eduSimple((r[\\'최종학력\\']||\\'\\').trim()); if(!groups[g]) groups[g]={}; groups[g][e]=(groups[g][e]||0)+1; });
+  const degrees = [\\'박사\\',\\'석사\\',\\'학사이하\\'];
+  const rows = [];
+  const totals = {박사:0,석사:0,학사이하:0};
+  GROUP_ORDER.forEach(g=>{
+    const gd = groups[g]||{};
+    const cells = [g, ...degrees.map(d=>{ const v=gd[d]||0; totals[d]+=v; return String(v); })];
+    rows.push({cells});
+  });
+  rows.push({cells:[\\'계\\', ...degrees.map(d=>String(totals[d]))], _cls:\\'total\\'});
+  document.getElementById(\\'eduSection\\').innerHTML =
+    \\'<div class="split"><div class="tbl-col" id="eduTbl"></div><div class="chart-col" id="eduPie"></div></div>\\';
+  renderTable(\\'eduTbl\\', [\\'조직\\', ...degrees], rows);
+  renderPieWithLegend(\\'eduPie\\', degrees.map(d=>({label:d, value:totals[d]})));
+}
+
+/* =========================================================
+   4. 전월/당월 비교 — 이동 세부 내역
+   ========================================================= */
+function renderMoves(){
+  const prevMap = new Map(state.prev.map(r=>[r[\\'사번\\'],r]));
+  const currMap = new Map(state.curr.map(r=>[r[\\'사번\\'],r]));
+  const ym = (()=>{ const d=baseDate(); return String(d.getFullYear())+String(d.getMonth()+1).padStart(2,\\'0\\'); })();
+  const rows = [];
+
+  currMap.forEach((row,id)=>{
+    if(!isSpace(row[ORG_FIELD])) return;
+    const prev = prevMap.get(id);
+    if(!prev){
+      const hireYM = (row[\\'입사일\\']||\\'\\').replace(/[^0-9]/g,\\'\\').slice(0,6);
+      const type = hireYM===ym ? \\'채용\\' : \\'전입\\';
+      rows.push({cells:[type, row[\\'성명\\'], row[\\'직급명\\']||\\'\\', \\'-\\', row[ORG_FIELD]]});
+      return;
+    }
+    if(!isSpace(prev[ORG_FIELD])){
+      rows.push({cells:[\\'전입(타사업부)\\', row[\\'성명\\'], row[\\'직급명\\']||\\'\\', prev[ORG_FIELD], row[ORG_FIELD]]});
+      return;
+    }
+    if(prev[\\'재직상태\\']===\\'재직\\' && row[\\'재직상태\\']===\\'휴직\\') rows.push({cells:[\\'휴직\\', row[\\'성명\\'], row[\\'직급명\\']||\\'\\', \\'재직\\', row[\\'휴직구분명\\']||\\'휴직\\']});
+    if(prev[\\'재직상태\\']===\\'휴직\\' && row[\\'재직상태\\']===\\'재직\\') rows.push({cells:[\\'복직\\', row[\\'성명\\'], row[\\'직급명\\']||\\'\\', \\'휴직\\', \\'재직\\']});
+    if(prev[ORG_FIELD] !== row[ORG_FIELD]) rows.push({cells:[\\'전배\\', row[\\'성명\\'], row[\\'직급명\\']||\\'\\', prev[ORG_FIELD], row[ORG_FIELD]]});
+    if(prev[\\'직급명\\'] !== row[\\'직급명\\']) rows.push({cells:[\\'직급변동\\', row[\\'성명\\'], prev[\\'직급명\\']||\\'\\', prev[\\'직급명\\'], row[\\'직급명\\']]});
+  });
+
+  prevMap.forEach((row,id)=>{
+    if(!isSpace(row[ORG_FIELD])) return;
+    const curr = currMap.get(id);
+    if(!curr){ rows.push({cells:[\\'퇴직\\', row[\\'성명\\'], row[\\'직급명\\']||\\'\\', row[ORG_FIELD], \\'-\\']}); return; }
+    if(!isSpace(curr[ORG_FIELD])) rows.push({cells:[\\'전출(타사업부)\\', row[\\'성명\\'], row[\\'직급명\\']||\\'\\', row[ORG_FIELD], curr[ORG_FIELD]]});
+  });
+
+  if(rows.length===0){ document.getElementById(\\'moveTable\\').innerHTML = \\'<div class="empty">전월 대비 변동 사항이 없습니다</div>\\'; return; }
+  renderTable(\\'moveTable\\', [\\'구분\\',\\'성명\\',\\'직급\\',\\'변경 전\\',\\'변경 후\\'], rows);
+}
+
+/* =========================================================
+   5. 현재 화면을 정적 HTML로 저장
+   ========================================================= */
+function exportSnapshot(){
+  if(!state.curr){ alert(\\'먼저 당월 명부 CSV를 업로드해주세요.\\'); return; }
+  const clone = document.documentElement.cloneNode(true);
+  [\\'.toolbar\\',\\'#errBox\\'].forEach(sel=>{ const el=clone.querySelector(sel); if(el) el.remove(); });
+  const dateVal = document.getElementById(\\'reportDate\\').value || new Date().toISOString().slice(0,10);
+  const metaEl = clone.querySelector(\\'.meta\\');
+  if(metaEl) metaEl.textContent = \\'기준일 \\' + dateVal + \\' (저장 시점 고정)\\';
+  const html = \\'<!DOCTYPE html>\n\\' + clone.outerHTML;
+  const blob = new Blob([html], {type:\\'text/html;charset=utf-8\\'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement(\\'a\\');
+  a.href = url; a.download = `우주사업부_인원현황_${dateVal.replace(/-/g,\\'\\')}.html`;
   document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
 }
 </script>
