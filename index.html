@@ -110,6 +110,7 @@
   .tag.leave{ background:#FDF3E7; color:#B7791F; }
   .tag.retire{ background:#FDEDE8; color:#C6431E; }
   .tag.hire{ background:#F3EFFD; color:#7C5FD1; }
+  .tag.dispatch{ background:#F3EFFD; color:#7C5FD1; }
   .tag.transfer-in{ background:#EAFBF3; color:#0E9F6E; }
   .tag.transfer-out{ background:#FFF1E6; color:#C2570B; }
   tr.chg-group-head td{ padding-top:14px; padding-bottom:6px; border-bottom:none; text-align:left; }
@@ -157,8 +158,7 @@
   <div class="kpi-row">
     <div class="kpi"><div class="label">우주사업부 재직 인원</div><div class="value" id="kpiTotal">-</div><span class="chip neutral" id="kpiTotalChip">당월 CSV 업로드 대기중</span></div>
     <div class="kpi"><div class="label">발령 · 변동 건수</div><div class="value" id="kpiChanges">-</div><span class="chip neutral" id="kpiChangesChip">전월/당월 CSV 필요</span></div>
-    <div class="kpi"><div class="label">우주사업부 임원 수</div><div class="value" id="kpiExec">-</div><span class="chip neutral" id="kpiExecChip">당월 CSV 업로드 대기중</span></div>
-    <div class="kpi"><div class="label">임원 1인당 관할 인원</div><div class="value" id="kpiExecRatio">-</div><span class="chip neutral" id="kpiExecRatioChip">우주사업부 기준</span></div>
+    <div class="kpi"><div class="label">평균 근속연수</div><div class="value" id="kpiTenure">-</div><span class="chip neutral" id="kpiTenureChip">그룹입사일 기준 · 임원 제외</span></div>
   </div>
 
   <div id="part1">
@@ -201,6 +201,7 @@
 
   <div id="part2">
     <div class="part-banner"><div class="t">PART 2 · 전사 / 사업부별 비교</div><div class="s">말일자 기준 재직인원만 집계</div></div>
+    <div class="upload-err" id="buWarning" style="margin-bottom:14px;"></div>
     <div class="grid">
       <div class="card w-half"><div class="card-title"><span class="tab"></span><h2>사업부별 인원현황</h2><span class="note">전사 재직 인원 기준</span></div>
         <div id="buHeadcountContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
@@ -225,19 +226,43 @@
   <div class="footer" id="footerNote">CSV를 업로드하면 자동 계산됩니다 · 외부 서버로 전송되지 않고 브라우저 안에서만 처리됩니다</div>
 
 <script>
-/* ===== 0. 설정: 조직/직급 분류 기준 ===== */
+/* ===== 0. 설정: 조직/직급 분류 기준 =====
+   우주사업부 12개 팀 (직속조직/우주연구소). 우주사업총괄·우주사업부는
+   전체 집계에는 포함하되, 이 12개 팀 비교 화면에서는 제외한다. */
 const ORG_GROUPS = {
-  '직속조직': ['우주사업총괄','우주사업부','우주사업전략팀','우주사업단','솔루션사업팀','차세대위성체계팀','제주우주센터'],
+  '직속조직': ['우주사업전략팀','우주사업단','솔루션사업팀','차세대위성체계팀','제주우주센터'],
   '우주연구소': ['위성체계팀','위성본체팀','위성탑재체1팀','위성탑재체2팀','위성탑재체3팀','위성지상체팀','위성기계팀']
 };
 const GROUP_ORDER = ['직속조직','우주연구소'];
 const SPACE_ORGS = Object.values(ORG_GROUPS).flat();
+const SPACE_HQ_ORGS = ['우주사업총괄','우주사업부']; // 12개 팀 비교에서는 제외, 전체 집계에는 포함
 const ORG_FIELD = '조직명';
 function groupOf(org){ for(const [g,list] of Object.entries(ORG_GROUPS)) if(list.includes(org)) return g; return '미분류'; }
-function isSpace(org){ return SPACE_ORGS.includes((org||'').trim()); }
 
+/* 전사 조직명 -> 사업부 매핑표. 조직 개편 시 이 표만 수정하면 된다. */
+const BU_ORG_MAP = {
+  '기타': ['사장실','C-UAS TF팀','고문실'],
+  '지원조직': ['전략기획실','전략기획팀','경영기획팀','운영혁신팀','ERP TF팀','TOP혁신팀','TOP TF','제품전략담당','상품기획팀','사업마케팅팀','재무실','금융팀','회계1팀','세무팀','IR팀','내부회계운영팀','지속가능경영팀','HR실','HR기획팀','HR기획팀(파견1)','HR기획팀(파견2)','HR기획팀(파견3)','HR기획팀(파견6)','HR기획팀(파견11)','HR운영팀','인재확보팀','인재확보팀(파견1)','지원실','ER기획팀','노사협력팀','지원팀','보안팀','구매실','구매기획팀','구매1팀','구매2팀','법무실','컴플라이언스팀','커뮤니케이션실','커뮤니케이션팀','CR실','원가실','원가기획팀','비용분석팀','원가1팀','원가2팀','품질경영실','품질운영팀','양산품보팀','개발품보팀','형상관리팀','정보보호사무국','ESH실','ESH운영팀','경영진단팀'],
+  'DE': ['DE사업부','DE사업전략담당','DE사업전략팀','DE사업운영팀','DE사업인사팀','C5ISR사업센터','C5ISR사업단','통신연구소','데이터링크1팀','데이터링크2팀','C4I체계팀','전술통신체계팀','SW팀(C4I)','SW팀(미래기술)','지상연구소','지상시스템1팀','지상시스템2팀','지상시스템3팀','지상시스템3팀(양산)','SW팀(지상)','전자광학연구소','전자광학체계1팀','전자광학체계2팀','전자광학체계3팀','전자광학체계3팀(양산)','전자광학체계4팀','항공시스템개발팀','SW팀(항공)','레이다사업센터','레이다사업단','레이다연구소','지상레이다체계1팀','지상레이다체계2팀','해상레이다체계팀','항공레이다체계팀','HW팀(레이다)','첨단레이다팀','SW팀(레이다)','레이저사업센터','레이저사업팀','레이저1팀','레이저1팀(양산)','레이저2팀','레이저3팀','사우디 MNG TF'],
+  '우주': [...SPACE_HQ_ORGS, ...SPACE_ORGS],
+  '해양': ['해양사업부','해양사업전략팀','해양사업단','소나개발팀','해양연구소','해양시스템1팀','해양시스템2팀','해양시스템3팀','해양시스템4팀','해양시스템5팀','해양SW1팀','해양SW2팀','Smart Vessel사업센터','Smart Vessel사업팀','무인체계팀','Smart Battlteship체계팀'],
+  'MRO': ['MRO사업부','MRO사업전략팀','MRO사업단','PBL운영팀','시스템MRO팀','방공MRO1팀','방공MRO2팀','해양MRO팀','IPS1팀','IPS2팀','시험기술팀','고객지원팀'],
+  '기반연구소': ['연구기획팀','AI팀','차세대반도체팀','차세대단말기팀','MUM-T팀','사이버시큐리티팀','HW1팀','HW2팀','HW3팀'],
+  '구미사업장': ['구미사업장','체계기술1팀','체계기술2팀','체계시험1팀','체계시험2팀','체계시험3팀','체계시험4팀','기계기술팀','제조팀','운영팀(구미)','생산관리팀','생산기술팀','자재관리팀','안전환경팀(구미)']
+};
 const BU_LIST = ['DE','우주','해양','MRO','기반연구소','구미사업장','지원조직','기타'];
-const BU_FIELD = '사업부';
+
+// 조직명 -> 사업부 역인덱스 + 중복/미매칭 조직명 추적
+const ORG_TO_BU = {};
+const DUPLICATE_BU_ORGS = [];
+Object.entries(BU_ORG_MAP).forEach(([bu, orgs])=>{
+  orgs.forEach(org=>{
+    if(ORG_TO_BU[org] && ORG_TO_BU[org]!==bu) DUPLICATE_BU_ORGS.push(org);
+    ORG_TO_BU[org] = bu;
+  });
+});
+function orgToBU(org){ return ORG_TO_BU[(org||'').trim()] || null; }
+function isSpace(org){ return orgToBU(org)==='우주'; }
 
 const EXEC_CODES = ['P','VP','ED'];
 const LEVEL_ORDER = ['임원','7','6','5','4','3','2','1','계약직','미분류'];
@@ -252,6 +277,7 @@ function isExec(row){ return classifyJobCode(row['직급코드']).level==='임�
 function eduSimple(edu){ if(edu==='박사') return '박사'; if(edu==='석사') return '석사'; return '학사이하'; }
 function koreanAge(raw, base){ const m=(raw||'').match(/(\d{4})/); if(!m) return null; return base.getFullYear() - (+m[1]) + 1; }
 const REQUIRED_COLUMNS = ['사번','성명','재직상태','조직명','법정생년월일','최종학력','직급코드','사업장'];
+
 
 /* ===== 1. 색상 유틸 (도넛 팔레트 생성용 — 네이비 고정 테마) ===== */
 function hexToRgb(hex){ hex=hex.replace('#',''); return [parseInt(hex.substring(0,2),16),parseInt(hex.substring(2,4),16),parseInt(hex.substring(4,6),16)]; }
@@ -379,6 +405,20 @@ function tenureYearsOf(row, base){
   const y=+digits.slice(0,4), m=+digits.slice(4,6)-1, d=+digits.slice(6,8); const joined=new Date(y,m,d);
   if(isNaN(joined.getTime())) return null; return (base-joined)/(1000*60*60*24*365.25);
 }
+function renderBUWarning(unmappedOrgs){
+  const box = document.getElementById('buWarning');
+  const unmappedKeys = Object.keys(unmappedOrgs);
+  if(unmappedKeys.length===0 && DUPLICATE_BU_ORGS.length===0){ box.style.display='none'; box.textContent=''; return; }
+  let html = '';
+  if(unmappedKeys.length){
+    html += '⚠ 사업부 매핑표에 없는 조직명(집계 제외):<br>' + unmappedKeys.map(k=>`· ${k} (${unmappedOrgs[k]}명)`).join('<br>');
+  }
+  if(DUPLICATE_BU_ORGS.length){
+    html += (html?'<br><br>':'') + '⚠ 두 개 이상의 사업부에 중복 매칭된 조직명(마지막 등록값으로 처리됨):<br>' + [...new Set(DUPLICATE_BU_ORGS)].map(k=>`· ${k}`).join('<br>');
+  }
+  box.innerHTML = html;
+  box.style.display = 'block';
+}
 
 /* ===== 5. 당월 명부 집계/렌더 — PART 1 (우주사업부) ===== */
 function renderAllFromCurrent(){
@@ -388,14 +428,6 @@ function renderAllFromCurrent(){
   document.getElementById('kpiTotal').textContent = active.length+'명';
   document.getElementById('kpiTotalChip').textContent = '재직 인원 기준';
   document.getElementById('kpiTotalChip').className = 'chip up';
-
-  const execCount = active.filter(isExec).length;
-  document.getElementById('kpiExec').textContent = execCount+'명';
-  document.getElementById('kpiExecChip').textContent = '우주사업부 재직 기준';
-  document.getElementById('kpiExecChip').className = 'chip neutral';
-  document.getElementById('kpiExecRatio').textContent = execCount ? (active.length/execCount).toFixed(1)+'명' : '-';
-  document.getElementById('kpiExecRatioChip').textContent = '총원 ÷ 임원수';
-  document.getElementById('kpiExecRatioChip').className = 'chip neutral';
 
   renderDeptCard(active);
   renderSiteCard(active);
@@ -519,10 +551,11 @@ function renderTenureCard(active){
   const eligible = active.filter(r=>!isExec(r));
   const tenures = eligible.map(r=>({row:r,t:tenureYearsOf(r, base)})).filter(x=>x.t!==null);
   const deptTenure={};
-  tenures.forEach(({row,t})=>{ const dept=row[ORG_FIELD]; if(!deptTenure[dept]) deptTenure[dept]=[]; deptTenure[dept].push(t); });
+  tenures.forEach(({row,t})=>{ const dept=row[ORG_FIELD]; if(SPACE_HQ_ORGS.includes(dept)) return; if(!deptTenure[dept]) deptTenure[dept]=[]; deptTenure[dept].push(t); });
   const deptData = Object.entries(deptTenure).map(([label,list])=>({label, value:Math.round(list.reduce((a,b)=>a+b,0)/list.length*100)/100})).sort((a,b)=>b.value-a.value);
   const avg = tenures.length ? tenures.reduce((a,{t})=>a+t,0)/tenures.length : 0;
   renderBarList('teamTenureContent', deptData, {unit:'년', markValue:Math.round(avg*100)/100, markLabel:`우주사업부 평균 ${avg.toFixed(2)}년`});
+  document.getElementById('kpiTenure').textContent = avg.toFixed(2)+'년';
 }
 
 function renderCrosstab(active){
@@ -543,19 +576,24 @@ function renderCrosstab(active){
 
 /* ===== 6. 당월 명부 집계/렌더 — PART 2 (전사/사업부 비교) ===== */
 function renderBUSection(){
-  if(!state.curr || !state.curr.length || !(BU_FIELD in state.curr[0])){
+  if(!state.curr || !state.curr.length){
     ['buHeadcountContent','buAgeContent','buExecContent','buExecRatioContent','buEduContent','buLevelPyramidContent'].forEach(id=>{
-      document.getElementById(id).innerHTML = '<div class="empty-state">명부에 \'사업부\' 컬럼이 없습니다. A열 앞에 사업부 컬럼을 추가해 업로드해주세요.</div>';
+      document.getElementById(id).innerHTML = '<div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div>';
     });
     return;
   }
   const base = baseDate();
   const active = state.curr.filter(r=>r['재직상태']==='재직');
   const buGroups = {}; BU_LIST.forEach(b=>buGroups[b]={ count:0, exec:0, ageSum:0, ageCount:0, edu:{박사:0,석사:0,학사이하:0}, level:{} });
+  const unmappedOrgs = {};
 
   active.forEach(r=>{
-    const bu = (r[BU_FIELD]||'').trim();
-    if(!buGroups[bu]) return;
+    const bu = orgToBU(r[ORG_FIELD]);
+    if(!bu){
+      const org = (r[ORG_FIELD]||'').trim() || '(빈값)';
+      unmappedOrgs[org] = (unmappedOrgs[org]||0) + 1;
+      return;
+    }
     const g = buGroups[bu];
     g.count++;
     if(isExec(r)) g.exec++;
@@ -566,6 +604,8 @@ function renderBUSection(){
     const {level} = classifyJobCode(r['직급코드']);
     if(level!=='미분류') g.level[level] = (g.level[level]||0)+1;
   });
+
+  renderBUWarning(unmappedOrgs);
 
   const colors = donutPalette(BU_LIST.length);
   renderDonut('buHeadcountContent', BU_LIST.map((b,i)=>({label:b, value:buGroups[b].count, color:colors[i]})), '전사 재직 인원(명)');
@@ -621,6 +661,12 @@ function renderComparison(){
     if(prev['재직상태']==='휴직' && row['재직상태']==='재직'){ flow['복직']++; flowNames['복직'].push(row['성명']); changes.push({type:'복직', before:'휴직', after:'재직', tag:'promo', position:prev['직급명']}); }
     if(prev[ORG_FIELD] !== row[ORG_FIELD]) changes.push({type:'전배', before:prev[ORG_FIELD], after:row[ORG_FIELD], tag:'move', position:prev['직급명']});
     if(prev['직급명'] !== row['직급명']) changes.push({type:'직급변동', before:prev['직급명'], after:row['직급명'], tag:'promo', position:prev['직급명']});
+    if(prev['사업장'] !== row['사업장']) changes.push({type:'사업장이동', before:prev['사업장'], after:row['사업장'], tag:'move', position:prev['직급명']});
+    if(prev['근무지역'] !== row['근무지역']) changes.push({type:'근무지이동', before:prev['근무지역'], after:row['근무지역'], tag:'move', position:prev['직급명']});
+    const prevDispatched = (prev['파견조직코드명']||'').trim()!=='';
+    const currDispatched = (row['파견조직코드명']||'').trim()!=='';
+    if(!prevDispatched && currDispatched) changes.push({type:'파견시작', before:prev[ORG_FIELD], after:row['파견조직코드명'], tag:'dispatch', position:prev['직급명']});
+    if(prevDispatched && !currDispatched) changes.push({type:'파견복귀', before:prev['파견조직코드명'], after:'원소속 복귀', tag:'dispatch', position:prev['직급명']});
     if(changes.length) changeRows.push({name:row['성명'], changes});
   });
   prevMap.forEach((row,id)=>{
@@ -665,7 +711,7 @@ function renderChangeTable(rows){
   if(rows.length===0){ document.getElementById('changeContent').innerHTML='<div class="empty-state">전월 대비 변동 사항이 없습니다</div>'; return; }
   const flat=[]; rows.forEach(r=>r.changes.forEach(c=>flat.push({name:r.name, ...c})));
   const groups={}; flat.forEach(c=>{ (groups[c.type]=groups[c.type]||[]).push(c); });
-  const TYPE_ORDER=['신규채용','전입(타사업부)','전배','직급변동','휴직','복직','전출(타사업부)','퇴직'];
+  const TYPE_ORDER=['신규채용','전입(타사업부)','전배','직급변동','사업장이동','근무지이동','파견시작','파견복귀','휴직','복직','전출(타사업부)','퇴직'];
   const orderedTypes = Object.keys(groups).sort((a,b)=>{ const ia=TYPE_ORDER.indexOf(a), ib=TYPE_ORDER.indexOf(b); return (ia===-1?999:ia)-(ib===-1?999:ib); });
   const body = orderedTypes.map(type=>{
     const list=groups[type]; const tag=list[0].tag;
