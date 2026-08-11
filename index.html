@@ -570,7 +570,7 @@ function renderJobCard(active){
   active.forEach(r=>{ const {family}=classifyJobCode(r); if(FAMILY_ORDER.includes(family)) counts[family]=(counts[family]||0)+1; });
   const labels = FAMILY_ORDER.filter(f=>counts[f]>0);
   const colors = donutPalette(labels.length);
-  renderDonut('jobContent', labels.map((l,i)=>({label:FAMILY_LABELS[l], value:counts[l], color:colors[i]})), '총원(명)', {forceLabels:true});
+  renderDonut('jobContent', labels.map((l,i)=>({label:FAMILY_LABELS[l], value:counts[l], color:colors[i]})), '총원(명)', {forceLabels:true,size:460});
   document.getElementById('jobNote').textContent = `직급코드 기준, 총 ${active.length}명`;
 }
 
