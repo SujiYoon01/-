@@ -760,7 +760,7 @@ function renderComparison(){
   prevMap.forEach((row,id)=>{
     if(!isSpace(row[ORG_FIELD])) return;
     const curr = currMap.get(id);
-    if(!curr){ flow['퇴직']++; flowNames['퇴직'].push(row['성명']); changeRows.push({name:row['성명'], changes:[{type:'퇴직', before:row[ORG_FIELD], after:'-', tag:'retire', position:row['직급명']}]}); return; }
+    if(!curr){ flow['퇴직']++; flowNames['퇴직'].push(row['성명']); changeRows.push({name:row['성명'], changes:[{type:'퇴직', before:row[ORG_FIELD], after:'퇴직', tag:'retire', position:row['직급명']}]}); return; }
     if(!isSpace(curr[ORG_FIELD])){ flow['전출']++; flowNames['전출'].push(row['성명']); changeRows.push({name:row['성명'], changes:[{type:'전출(타사업부)', before:row[ORG_FIELD], after:curr[ORG_FIELD], tag:'transfer-out', position:row['직급명']}]}); }
   });
   renderFlowCard(flow,flowNames); renderChangeTable(changeRows);
