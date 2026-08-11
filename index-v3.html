@@ -755,7 +755,7 @@ function renderBUSection(){
   });
 
   const colors = donutPalette(BU_LIST.length);
-  renderDonut('buHeadcountContent', BU_LIST.map((b,i)=>({label:b, value:buGroups[b].count, color:colors[i]})), '전사 재직 인원(명)');
+  renderDonut('buHeadcountContent', BU_LIST.map((b,i)=>({label:b, value:buGroups[b].count, color: b==='우주' ? 'var(--gold)' : colors[i]})), '전사 재직 인원(명)');
   attachBUSummaryTooltip();
 
   const totalAgeSum = BU_LIST.reduce((a,b)=>a+buGroups[b].ageSum,0);
@@ -764,10 +764,10 @@ function renderBUSection(){
   renderBarList('buAgeContent', BU_LIST.map(b=>{ const g=buGroups[b]; return {label:b, value:g.ageCount?Math.round(g.ageSum/g.ageCount*10)/10:0, color: b==='우주' ? 'var(--gold)' : 'var(--c1)'}; }),
     {unit:'세', markValue:Math.round(overallAvgAge*10)/10, markLabel:`전사 평균 ${overallAvgAge.toFixed(1)}세`});
 
-  renderDonut('buExecContent', BU_LIST.map((b,i)=>({label:b, value:buGroups[b].exec, color:colors[i]})), '전사 임원(명)');
+  renderDonut('buExecContent', BU_LIST.map((b,i)=>({label:b, value:buGroups[b].exec, color: b==='우주' ? 'var(--gold)' : colors[i]})), '전사 임원(명)');
   attachBUExecTooltip(buGroups);
 
-  renderBarList('buExecRatioContent', BU_LIST.map(b=>{ const g=buGroups[b]; return {label:b, value:g.exec?Math.round(g.count/g.exec*10)/10:0}; }), {unit:'명'});
+  renderBarList('buExecRatioContent', BU_LIST.map(b=>{ const g=buGroups[b]; return {label:b, value:g.exec?Math.round(g.count/g.exec*10)/10:0, color: b==='우주' ? 'var(--gold)' : 'var(--c1)'}; }), {unit:'명'});
 
   const degrees=['박사','석사','학사이하'];
   let rows = '<tr><th class="lbl">사업부</th>'+degrees.map(d=>`<th>${d}</th>`).join('')+'<th>계</th></tr>';
