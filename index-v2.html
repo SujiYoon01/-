@@ -175,13 +175,13 @@
       <div class="card w-half"><div class="card-title"><span class="tab"></span><h2>인력증감내역</h2><span class="note">전월/당월 명부 비교</span></div>
         <div id="flowContent" class="card-body"><div class="empty-state">전월·당월 명부 CSV를 모두 올리면 표시됩니다</div></div></div>
 
-      <div class="card w-half"><div class="card-title"><span class="tab" style="background:var(--pos)"></span><h2>이동내역 · 입퇴사</h2><span class="note" id="changeNote1">전월/당월 명부 비교</span></div>
+      <div class="card w-half"><div class="card-title"><span class="tab" style="background:var(--pos)"></span><h2>채용 · 퇴직</h2><span class="note" id="changeNote1">전월/당월 명부 비교</span></div>
         <div id="changeContent1" class="card-body"><div class="empty-state">전월·당월 명부 CSV를 모두 올리면 표시됩니다</div></div></div>
 
-      <div class="card w-half"><div class="card-title"><span class="tab" style="background:var(--pos)"></span><h2>이동내역 · 조직/직급 변동</h2><span class="note" id="changeNote2">전월/당월 명부 비교</span></div>
+      <div class="card w-half"><div class="card-title"><span class="tab" style="background:var(--pos)"></span><h2>전입(from타사업부) · 전출(to타사업부)</h2><span class="note" id="changeNote2">전월/당월 명부 비교</span></div>
         <div id="changeContent2" class="card-body"><div class="empty-state">전월·당월 명부 CSV를 모두 올리면 표시됩니다</div></div></div>
 
-      <div class="card w-half"><div class="card-title"><span class="tab" style="background:var(--pos)"></span><h2>이동내역 · 휴직/파견</h2><span class="note" id="changeNote3">전월/당월 명부 비교</span></div>
+      <div class="card w-half"><div class="card-title"><span class="tab" style="background:var(--pos)"></span><h2>전배 · 직급변동 · 사업장이동 · 근무지이동</h2><span class="note" id="changeNote3">전월/당월 명부 비교</span></div>
         <div id="changeContent3" class="card-body"><div class="empty-state">전월·당월 명부 CSV를 모두 올리면 표시됩니다</div></div></div>
 
       <div class="card w-half"><div class="card-title"><span class="tab"></span><h2>부서별 인원현황</h2><span class="note" id="deptNote">조직명 기준</span></div>
@@ -748,9 +748,9 @@ function renderBUSection(){
 
 /* ===== 7. 전월/당월 비교 ===== */
 const CHANGE_GROUPS = [
-  { id:'changeContent1', note:'changeNote1', types:['신규채용','전입(타사업부)','전출(타사업부)','퇴직'] },
-  { id:'changeContent2', note:'changeNote2', types:['전배','직급변동','사업장이동','근무지이동'] },
-  { id:'changeContent3', note:'changeNote3', types:['휴직','복직','파견시작','파견복귀'] }
+  { id:'changeContent1', note:'changeNote1', types:['신규채용','퇴직'] },
+  { id:'changeContent2', note:'changeNote2', types:['전입(타사업부)','전출(타사업부)'] },
+  { id:'changeContent3', note:'changeNote3', types:['전배','직급변동','사업장이동','근무지이동','휴직','복직','파견시작','파견복귀'] }
 ];
 
 function renderComparison(){
