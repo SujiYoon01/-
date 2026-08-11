@@ -130,7 +130,8 @@
   .miniflow .arrow{ font-size:18px; color:var(--mute); margin:0 10px; }
   .miniflow .diff{ font-size:12px; font-weight:700; padding:3px 9px; border-radius:10px; }
   .flow-note{ font-size:10.5px; color:var(--mute); margin-top:10px; line-height:1.6; }
-  .flow-tooltip{ position:absolute; background:#fff; border:1px solid #E5E5E5; border-radius:6px; padding:8px 10px; font-size:12px; line-height:1.6; box-shadow:0 4px 12px rgba(0,0,0,.12); z-index:50; min-width:80px; }
+.flow-tooltip{ position:absolute; background:#fff; border:1px solid #E5E5E5; border-radius:6px; padding:8px 10px; font-size:12px; line-height:1.6; box-shadow:0 4px 12px rgba(0,0,0,.12); z-index:50; min-width:80px; }
+  .change-scroll{ max-height:340px; overflow-y:auto; }
   @media (max-width:900px){ .w-half{ width:100%; } }
 </style>
 </head>
@@ -187,7 +188,7 @@
       <div class="card w-half"><div class="card-title"><span class="tab"></span><h2>부서별 인원현황</h2><span class="note" id="deptNote">조직명 기준</span></div>
         <div id="deptContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
 
-      <div class="card w-half"><div class="card-title"><span class="tab"></span><h2>사업장별 인원현황</h2><span class="note">사업장 기준</span></div>
+      <div class="card w-half"><div class="card-title"><span class="tab"></span><h2>사업장별 인원현황</h2><span class="note">사업장 클릭시 해당 사업장 소속 부서 확인 가능</span></div>
         <div id="siteContent" class="card-body"><div class="empty-state">당월 명부 CSV를 올리면 표시됩니다</div></div></div>
 
       <div class="card w-full"><div class="card-title"><span class="tab" style="background:#7C5FD1"></span><h2>부서별 레벨 분포</h2><span class="note"></span></div>
@@ -544,13 +545,40 @@ function toggleDeptTooltip(e,org){
 }
 document.addEventListener('click', e=>{ const tip=document.getElementById('deptTooltip'); if(tip && !tip.contains(e.target) && !e.target.closest('.dept-tile')){ tip.style.display='none'; tip.dataset.org=''; } });
 
+const SITE_SUMMARY_ORGS = {
+  '용인': ['차세대위성체계팀','위성체계팀','위성본체팀','위성탑재체1팀','위성탑재체2팀','위성지상체팀','위성기계팀'],
+  '서현': ['위성탑재체3팀'],
+  '제주': ['제주우주센터'],
+  '서울2': ['우주사업전략팀','우주사업단','솔루션사업팀']
+};
 function renderSiteCard(active){
   const counts={};
   active.forEach(r=>{ const s=r['사업장']||'미기재'; counts[s]=(counts[s]||0)+1; });
   const labels = Object.keys(counts).sort((a,b)=>counts[b]-counts[a]);
   const colors = donutPalette(labels.length);
   renderDonut('siteContent', labels.map((l,i)=>({label:l, value:counts[l], color:colors[i]})), '사업장별 인원(명)');
+  attachSiteSummaryTooltip(labels);
 }
+function attachSiteSummaryTooltip(labels){
+  const svg = document.querySelector('#siteContent svg');
+  if(!svg) return;
+  svg.querySelectorAll('path').forEach((path,i)=>{
+    const site = labels[i];
+    if(!SITE_SUMMARY_ORGS[site]) return;
+    path.style.cursor='pointer';
+    path.addEventListener('click', e=>{ e.stopPropagation(); toggleSiteSummaryTooltip(e,site); });
+  });
+}
+function toggleSiteSummaryTooltip(e,site){
+  let tip=document.getElementById('siteSummaryTooltip');
+  if(!tip){ tip=document.createElement('div'); tip.id='siteSummaryTooltip'; tip.className='flow-tooltip'; document.body.appendChild(tip); }
+  if(tip.style.display==='block' && tip.dataset.site===site){ tip.style.display='none'; delete tip.dataset.site; return; }
+  const orgs = SITE_SUMMARY_ORGS[site]||[];
+  tip.innerHTML = `<div style="font-weight:700;margin-bottom:4px;">${site} 소속 부서</div>` + orgs.map(o=>`<div>${o}</div>`).join('');
+  tip.dataset.site = site;
+  tip.style.left=(e.pageX+12)+'px'; tip.style.top=(e.pageY+12)+'px'; tip.style.display='block';
+}
+document.addEventListener('click', e=>{ const tip=document.getElementById('siteSummaryTooltip'); if(tip && e.target.tagName!=='path'){ tip.style.display='none'; delete tip.dataset.site; } });
 
 function renderLevelCard(active){
   const levels = ['7','6','5','4','3'];
@@ -854,7 +882,7 @@ function renderChangeTable(rows){
       const bodyRows = list.map(c=>`<tr><td class="lbl">${c.name}<span class="chg-position">${c.position?' · '+c.position:''}</span></td><td><span class="chg-arrow">${c.before} -> ${c.after}</span></td></tr>`).join('');
       return head+bodyRows;
     }).join('');
-    bodyEl.innerHTML = `<table class="tbl"><tr><th class="lbl">구분/성명</th><th>변동내역</th></tr>${body}</table>`;
+bodyEl.innerHTML = `<div class="change-scroll"><table class="tbl"><tr><th class="lbl">구분/성명</th><th>변동내역</th></tr>${body}</table></div>`;
   });
 }
 
