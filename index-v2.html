@@ -620,7 +620,6 @@ function renderJobCard(active){
  renderDonut('jobContent', labels.map((l,i)=>({label:FAMILY_LABELS[l], value:counts[l], color:colors[i]})), '총원(명)', {forceLabels:true, size:460});
   document.getElementById('jobNote').textContent = `직급코드 기준, 총 ${active.length}명`;
 }
-
 function renderEduCard(active){
   const EDU_FIXED = {
     '직속조직': {박사:9, 석사:26, 학사이하:65},
